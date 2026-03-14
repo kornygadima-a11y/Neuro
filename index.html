@@ -7,13 +7,13 @@
     <script src="https://telegram.org"></script>
     <style>
         :root { --neon: #00f2ff; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: white; -webkit-tap-highlight-color: transparent; }
-        #bg-video { position: fixed; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index: 1; background: #000; pointer-events: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: white; }
+        #bg-video { position: fixed; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index: 1; background: #000; }
         .ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
         .glass { background: rgba(0,0,0,0.85); border: 2px solid var(--neon); border-radius: 20px; width: 85%; padding: 25px; text-align: center; box-shadow: 0 0 20px var(--neon); pointer-events: auto; }
         .avatars { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
-        .avatar-btn { cursor: pointer; text-align: center; outline: none; }
-        .avatar-btn img { width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--neon); object-fit: cover; pointer-events: none; }
+        .avatar-btn { cursor: pointer; text-align: center; }
+        .avatar-btn img { width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--neon); object-fit: cover; }
         button { width: 100%; background: var(--neon); color: #000; border: none; padding: 15px; margin-top: 15px; font-weight: bold; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
         input { width: 100%; background: none; border: none; border-bottom: 2px solid var(--neon); color: #fff; text-align: center; margin-bottom: 20px; font-size: 22px; outline: none; }
     </style>
@@ -22,38 +22,34 @@
     <video id="bg-video" autoplay muted playsinline loop></video>
 
     <div class="ui">
-        <!-- ШАГ 0: ВЫБОР -->
         <div id="s0" class="glass">
-            <div style="font-weight: bold; letter-spacing: 1px;">ВЫБЕРИ ПРОВОДНИКА</div>
+            <div style="font-weight: bold;">ВЫБЕРИ ПРОВОДНИКА</div>
             <div class="avatars">
-                <div class="avatar-btn" onclick="start('женский')">
+                <!-- При клике передаем латинское название папки -->
+                <div class="avatar-btn" onclick="start('female')">
                     <img src="f_avatar.jpg">
                     <div style="margin-top:10px; color:var(--neon)">НЕЙРА</div>
                 </div>
-                <div class="avatar-btn" onclick="start('мужской')">
+                <div class="avatar-btn" onclick="start('male')">
                     <img src="m_avatar.jpg">
                     <div style="margin-top:10px; color:var(--neon)">АЛЕКС</div>
                 </div>
             </div>
         </div>
 
-        <!-- ШАГ 1: ВВОД -->
         <div id="s1" class="glass" style="display:none">
             <input type="text" id="bd" placeholder="ДД.ММ.ГГГГ">
             <button onclick="toMenu()">ПОДКЛЮЧИТЬСЯ</button>
         </div>
 
-        <!-- ШАГ 2: МЕНЮ -->
         <div id="s2" class="glass" style="display:none">
             <button onclick="act(7)">АСТРО-ПРОГНОЗ</button>
             <button onclick="act(6)">НУМЕРОЛОГИЯ</button>
             <button onclick="act(8)">БИО-РИТМЫ</button>
-            <button style="background:#ff00ff; color:white" onclick="act(3)">🔒 СОВМЕСТИМОСТЬ</button>
         </div>
 
-        <!-- ШАГ 3: РЕЗУЛЬТАТ -->
         <div id="s3" class="glass" style="display:none">
-            <div id="res" style="margin-bottom:20px; font-size: 16px; line-height: 1.4;"></div>
+            <div id="res" style="margin-bottom:20px; font-size: 16px;">АНАЛИЗ ЗАВЕРШЕН</div>
             <button onclick="location.reload()">ЗАНОВО</button>
         </div>
     </div>
@@ -63,19 +59,18 @@
         tg.ready();
         tg.expand();
 
-        let hero = 'женский';
+        let hero = 'female';
         const v = document.getElementById('bg-video');
 
         function start(choice) {
             hero = choice;
-            v.muted = false; // Включаем звук первым кликом
+            v.muted = false; // "Будим" звук кликом
             document.getElementById('s0').style.display = 'none';
             document.getElementById('s1').style.display = 'block';
             playVid(1, false);
         }
 
         function toMenu() {
-            if(!document.getElementById('bd').value) return;
             document.getElementById('s1').style.display = 'none';
             document.getElementById('s2').style.display = 'block';
             playVid(2, true);
@@ -84,21 +79,25 @@
         function act(n) {
             document.getElementById('s2').style.display = 'none';
             playVid(n, false);
-            setTimeout(() => {
-                playVid(3, true); // Видео сканирования
-                setTimeout(() => {
-                    playVid(4, false); // Видео финала
+            setTimeout(function() {
+                playVid(3, true); 
+                setTimeout(function() {
+                    playVid(4, false);
                     document.getElementById('s3').style.display = 'block';
-                    document.getElementById('res').innerText = "СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА. ВАШ ЦИФРОВОЙ КОД ПРИНЯТ.";
                 }, 4000);
             }, 4000);
         }
 
         function playVid(n, loop) {
-            // Кодируем русские названия папок для браузера
-            v.src = encodeURIComponent(hero) + '/' + n + '.mp4';
+            // Формируем путь. n - номер видео (1, 2, 3...)
+            const path = hero + '/' + n + '.mp4';
+            console.log("Загружаю видео: " + path);
+            v.src = path;
             v.loop = loop;
-            v.play().catch(e => console.log("Видео не найдено:", e));
+            v.load();
+            v.play().catch(function(e) {
+                console.log("Ошибка: видео не найдено по пути " + path);
+            });
         }
     </script>
 </body>
