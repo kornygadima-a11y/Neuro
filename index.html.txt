@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEURO-LAB</title>
+    <script src="https://telegram.org"></script>
+    <style>
+        :root { --neon: #00f2ff; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: white; }
+        #bg-video { position: fixed; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index: -1; }
+        .ui { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+        .glass { background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border: 1px solid var(--neon); border-radius: 15px; width: 85%; padding: 20px; text-align: center; }
+        button { width: 100%; background: none; border: 1px solid var(--neon); color: var(--neon); padding: 14px; margin: 6px 0; text-transform: uppercase; font-size: 12px; border-radius: 5px; }
+        .avatars { display: flex; gap: 20px; justify-content: center; margin-top: 15px; }
+        .avatars img { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <video id="bg-video" autoplay muted playsinline loop></video>
+    <div class="ui">
+        <div id="s0" class="glass">
+            <div>ВЫБЕРИ ПРОВОДНИКА</div>
+            <div class="avatars">
+                <!-- ВНИМАНИЕ: Исправлены пути к твоим аватаркам -->
+                <div onclick="setH('female')"><img src="f_avatar.jpg.jpg"><br><small>НЕЙРА</small></div>
+                <div onclick="setH('male')"><img src="m_avatar.jpg..jpg"><br><small>АЛЕКС</small></div>
+            </div>
+        </div>
+        <div id="s1" class="glass" style="display:none">
+            <input type="text" id="bd" placeholder="ДАТА (ДД.ММ.ГГГГ)" style="width:100%; background:none; border:none; border-bottom:1px solid var(--neon); color:#fff; text-align:center; margin-bottom:15px; outline:none;">
+            <button onclick="toMenu()">ВОЙТИ</button>
+        </div>
+        <div id="s2" class="glass" style="display:none">
+            <button onclick="act(7)">АСТРО-ПРОГНОЗ</button>
+            <button onclick="act(6)">НУМЕРОЛОГИЯ</button>
+            <button onclick="act(8)">БИО-РИТМЫ</button>
+            <button style="color:#ff00ff; border-color:#ff00ff" onclick="goSync()">СОВМЕСТИМОСТЬ</button>
+        </div>
+        <div id="s3" class="glass" style="display:none">
+            <div id="res"></div>
+            <button onclick="back()">НАЗАД</button>
+        </div>
+    </div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        let hero = 'female';
+        const v = document.getElementById('bg-video');
+
+        function setH(h) { 
+            hero = h; 
+            document.getElementById('s0').style.display='none'; 
+            document.getElementById('s1').style.display='block'; 
+            play(1, false); 
+        }
+
+        function toMenu() { 
+            document.getElementById('s1').style.display='none'; 
+            document.getElementById('s2').style.display='block'; 
+            play(2, true); 
+        }
+
+        function act(n) { 
+            document.getElementById('s2').style.display='none'; 
+            play(n, false); 
+            setTimeout(() => { play(3, true); setTimeout(() => { show(); }, 3000); }, 4000); 
+        }
+
+        function show() { 
+            play(4, false); 
+            document.getElementById('s3').style.display='block'; 
+            document.getElementById('res').innerText = "Анализ завершен. Матрица подтверждает успех."; 
+        }
+
+        function play(n, loop) { 
+            // ВНИМАНИЕ: Код теперь ищет твои файлы с двойным .mp4.mp4
+            v.src = hero + '/' + n + '.mp4.mp4'; 
+            v.loop = loop; 
+            v.play(); 
+        }
+
+        function goSync() { act(3); }
+        function back() { 
+            document.getElementById('s3').style.display='none'; 
+            document.getElementById('s2').style.display='block'; 
+            play(2, true); 
+        }
+    </script>
+</body>
+</html>
