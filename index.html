@@ -3,61 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEURO-LAB PRO</title>
+    <title>NEURO-LAB ALPHA</title>
     <style>
         :root { --neon: #00f2ff; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: white; }
         
         #bg-video { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #000; }
 
-        /* Сдвигаем весь интерфейс ВНИЗ, чтобы не закрывать лицо */
-        .ui { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 100; pointer-events: none; }
+        /* Интерфейс смещен вниз, чтобы не закрывать лицо */
+        .ui { position: absolute; bottom: 50px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 100; pointer-events: none; }
         
-        /* Ультра-прозрачное стекло: только рамка и легкое свечение */
+        /* Прозрачное стекло - только контур и блюр */
         .glass { 
             background: rgba(0,0,0,0.1); 
-            backdrop-filter: blur(3px); 
-            border: 1px solid rgba(0,242,255,0.5); 
-            border-radius: 20px; 
+            backdrop-filter: blur(8px); 
+            border: 1px solid rgba(0,242,255,0.4); 
+            border-radius: 25px; 
             width: 85%; 
-            max-width: 380px;
-            padding: 20px; 
+            max-width: 400px;
+            padding: 25px; 
             text-align: center; 
             pointer-events: auto;
-            transition: opacity 0.8s ease;
+            opacity: 0;
+            transition: opacity 1s ease;
         }
         
         .avatars { display: flex; gap: 40px; justify-content: center; margin-top: 15px; }
-        .hero-btn { cursor: pointer; text-align: center; transition: 0.3s; }
-        .hero-btn img { width: 80px; height: 80px; border-radius: 50%; border: 1px solid var(--neon); object-fit: cover; box-shadow: 0 0 10px rgba(0,242,255,0.3); }
+        .hero-btn { cursor: pointer; text-align: center; }
+        .hero-btn img { width: 90px; height: 90px; border-radius: 50%; border: 1px solid var(--neon); object-fit: cover; box-shadow: 0 0 15px rgba(0,242,255,0.2); }
         
-        /* Прозрачные кнопки-рамки */
         button { 
             width: 100%; 
             background: rgba(0,0,0,0.2); 
             color: var(--neon); 
             border: 1px solid var(--neon); 
-            padding: 12px; 
+            padding: 15px; 
             margin-top: 10px; 
             font-weight: bold; 
-            border-radius: 10px; 
+            border-radius: 12px; 
             text-transform: uppercase; 
             cursor: pointer;
-            font-size: 13px;
             letter-spacing: 1px;
+            font-size: 13px;
         }
-        button:hover { background: rgba(0,242,255,0.2); box-shadow: 0 0 15px var(--neon); }
         
         input { 
             width: 100%; 
             background: none; 
             border: none; 
-            border-bottom: 1px solid var(--neon); 
+            border-bottom: 2px solid var(--neon); 
             color: #fff; 
             text-align: center; 
-            margin-bottom: 15px; 
-            font-size: 24px; 
+            margin-bottom: 20px; 
+            font-size: 28px; 
             outline: none; 
+            padding: 10px 0; 
         }
     </style>
 </head>
@@ -65,37 +65,38 @@
     <video id="bg-video" playsinline></video>
 
     <div class="ui">
-        <!-- ШАГ 0 -->
-        <div id="s0" class="glass">
-            <div style="font-size: 10px; letter-spacing: 2px; color: var(--neon); margin-bottom:10px;">NEURO-LAB: ВЫБОР ПРОВОДНИКА</div>
+        <!-- ШАГ 0: СТАРТ (Виден сразу) -->
+        <div id="s0" class="glass" style="opacity: 1;">
+            <div style="font-weight: bold; letter-spacing: 3px; color: var(--neon); margin-bottom:10px;">NEURO-LAB</div>
             <div class="avatars">
                 <div class="hero-btn" onclick="startLab('female')">
                     <img src="f_avatar.jpg">
-                    <div style="margin-top:8px; font-size: 10px;">НЕЙРА</div>
+                    <div style="margin-top:10px; font-size: 11px;">НЕЙРА</div>
                 </div>
                 <div class="hero-btn" onclick="startLab('male')">
                     <img src="m_avatar.jpg">
-                    <div style="margin-top:8px; font-size: 10px;">АЛЕКС</div>
+                    <div style="margin-top:10px; font-size: 11px;">АЛЕКС</div>
                 </div>
             </div>
         </div>
 
-        <!-- ШАГ 1: ПОЯВИТСЯ ТОЛЬКО ПОСЛЕ ВИДЕО -->
+        <!-- ШАГ 1: ВВОД ДАТЫ (После видео 1) -->
         <div id="s1" class="glass" style="display:none;">
+            <div style="margin-bottom: 15px; font-size: 11px; color: var(--neon);">ИДЕНТИФИКАЦИЯ</div>
             <input type="tel" id="birthdate" placeholder="ДД.ММ.ГГГГ" maxlength="10">
-            <button onclick="toMenu()">ПОДКЛЮЧИТЬСЯ</button>
+            <button onclick="toMenu()">ПРОДОЛЖИТЬ</button>
         </div>
 
-        <!-- ШАГ 2: ГЛАВНОЕ МЕНЮ -->
+        <!-- ШАГ 2: МЕНЮ (После видео 2) -->
         <div id="s2" class="glass" style="display:none">
             <button onclick="act(7)">АСТРО-ПРОГНОЗ</button>
             <button onclick="act(6)">НУМЕРОЛОГИЯ</button>
             <button onclick="act(8)">БИО-РИТМЫ</button>
         </div>
 
-        <!-- ШАГ 3: РЕЗУЛЬТАТ -->
+        <!-- ШАГ 3: РЕЗУЛЬТАТ (После видео 4) -->
         <div id="s3" class="glass" style="display:none">
-            <div id="res" style="margin-bottom:15px; font-size: 14px; font-weight: lighter;"></div>
+            <div id="res" style="margin-bottom:20px; font-size: 15px; line-height: 1.6;"></div>
             <button onclick="location.reload()">ОБНУЛИТЬ</button>
         </div>
     </div>
@@ -110,45 +111,62 @@
             v.play();
         }
 
+        function showUI(id) {
+            const el = document.getElementById(id);
+            el.style.display = 'block';
+            setTimeout(() => { el.style.opacity = "1"; }, 100);
+        }
+
+        function hideUI(id) {
+            document.getElementById(id).style.opacity = "0";
+            setTimeout(() => { document.getElementById(id).style.display = 'none'; }, 500);
+        }
+
         function startLab(choice) {
             hero = choice;
-            document.getElementById('s0').style.display = 'none';
-            playVid(1, false); // Играем приветствие
+            hideUI('s0');
+            playVid(1, false); // Приветствие
 
-            // Ждем реального окончания видео
             v.onended = function() {
                 if (v.src.includes('1.mp4')) {
-                    document.getElementById('s1').style.display = 'block';
-                    v.pause(); // Оставляем лицо на последнем кадре
+                    v.pause(); // Залип на последнем кадре
+                    showUI('s1');
                 }
             };
         }
 
         function toMenu() {
             if(!document.getElementById('birthdate').value) return;
-            document.getElementById('s1').style.display = 'none';
-            document.getElementById('s2').style.display = 'block';
-            playVid(2, true); // Ожидание
+            hideUI('s1');
+            playVid(2, false); // Видео перехода к меню
+
+            v.onended = function() {
+                if (v.src.includes('2.mp4')) {
+                    v.pause(); // Залип
+                    showUI('s2');
+                }
+            };
         }
 
         function act(n) {
-            document.getElementById('s2').style.display = 'none';
-            playVid(n, false);
-            
+            hideUI('s2');
+            playVid(n, false); // Модуль (7, 6 или 8)
+
             v.onended = function() {
-                // После модуля (6,7,8) включаем сканирование (3)
+                // После модуля запускаем сканирование (3)
                 if (n == 6 || n == 7 || n == 8) {
-                    playVid(3, true); 
-                    // Сканирование оставим на 4 секунды для эффекта
-                    setTimeout(() => {
-                        playVid(4, false); // Финал
+                    playVid(3, false);
+                    v.onended = function() {
+                        // После сканирования - результат (4)
+                        playVid(4, false);
                         v.onended = function() {
                             if (v.src.includes('4.mp4')) {
-                                document.getElementById('s3').style.display = 'block';
-                                document.getElementById('res').innerText = "Синхронизация завершена. Твоя судьба в твоих руках.";
+                                v.pause(); // Залип на финале
+                                document.getElementById('res').innerText = "Синхронизация завершена. Твой цифровой след зафиксирован в системе.";
+                                showUI('s3');
                             }
                         };
-                    }, 4000);
+                    };
                 }
             };
         }
