@@ -100,5 +100,64 @@
             }
         }
     </script>
+    <script>
+        // Твои настройки
+        var hero = 'female'; 
+        var v = document.getElementById('v');
+        var KEY = "AIzaSyDh65nKEprjrOfjS2g_ckvqvFWCgNg1kck";
+
+        // Функция запуска видео
+        function pl(n, loop) {
+            v.src = hero + "/" + n + ".mp4";
+            v.loop = loop;
+            v.play().catch(function(e){ console.log("Видео не найдено"); });
+        }
+
+        // Кнопка выбора героя (Нейра/Алекс)
+        function start(choice) {
+            hero = choice;
+            v.muted = false;
+            document.getElementById('s0').style.display = 'none';
+            document.getElementById('s1').style.display = 'block';
+            pl(1, false);
+        }
+
+        // Кнопка перехода к меню после ввода даты
+        function menu() {
+            document.getElementById('s1').style.display = 'none';
+            document.getElementById('s2').style.display = 'block';
+            pl(2, true);
+        }
+
+        // ГЛАВНАЯ ФУНКЦИЯ: Работа кнопок Астрология/Нумерология
+        async function ask(type) {
+            var rb = document.getElementById('res');
+            rb.innerText = "СЧИТЫВАЮ ВАШ ЦИФРОВОЙ КОД...";
+            
+            var bday = document.getElementById('bd').value || "неизвестно";
+            var promptText = "Ты мудрый Оракул. Дай прогноз на тему " + type + " для даты " + bday + ". 2 коротких предложения.";
+
+            try {
+                var url = "https://generativelanguage.googleapis.com" + KEY;
+                var response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+
+                var data = await response.json();
+                
+                // Исправленный путь к тексту (чтобы не было "Ошибки связи")
+                if (data.candidates && data.candidates[0].content) {
+                    rb.innerText = data.candidates[0].content.parts[0].text;
+                } else {
+                    rb.innerText = "ЗВЕЗДЫ МОЛЧАТ. ПОПРОБУЙ ЕЩЕ РАЗ.";
+                }
+            } catch (e) {
+                rb.innerText = "ОШИБКА СВЯЗИ С МАТРИЦЕЙ.";
+            }
+        }
+    </script>
 </body>
 </html>
+
