@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neuro-Lab | Цифровой Оракул</title>
-    <!-- ✅ Исправленная ссылка на Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #000; color: #00f2ff; 
-            font-family: 'Segoe UI', Arial, sans-serif; 
+            width: 100%; height: 100%; 
+            overflow: hidden; background: #000; 
+            color: #00f2ff; font-family: 'Segoe UI', Arial, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
         }
         
         /* 🎬 Фоновое видео */
@@ -19,162 +20,332 @@
             position: fixed; top: 0; left: 0; 
             width: 100%; height: 100%; 
             object-fit: cover; z-index: 1; 
-            opacity: 0.85; 
+            opacity: 0.75;
         }
         
-        /* 🖼️ UI-слой поверх видео */
+        /* 🌟 Градиент поверх видео для глубины */
+        .video-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(180deg, 
+                rgba(0,0,0,0.3) 0%, 
+                rgba(0,0,0,0.1) 50%, 
+                rgba(0,0,0,0.5) 100%);
+            z-index: 2; pointer-events: none;
+        }
+        
+        /* 🖼️ UI-слой */
         .ui { 
             position: relative; z-index: 100; 
             height: 100vh; display: flex; 
             flex-direction: column; 
             align-items: center; justify-content: center; 
-            padding: 10px;
+            padding: 15px;
         }
         
-        /* 🪟 Стеклянные карточки меню */
+        /* 🪟 Стеклянные карточки — УЛУЧШЕННЫЕ */
         .box { 
-            background: rgba(0, 10, 30, 0.4); 
-            border: 1px solid rgba(0, 242, 255, 0.6); 
-            border-radius: 20px; 
-            width: 90%; max-width: 400px;
-            padding: 25px 20px; 
+            background: linear-gradient(135deg, 
+                rgba(0, 20, 40, 0.35) 0%, 
+                rgba(0, 40, 60, 0.25) 100%); 
+            border: 1px solid rgba(0, 242, 255, 0.4); 
+            border-top: 1px solid rgba(0, 242, 255, 0.7);
+            border-radius: 24px; 
+            width: 92%; max-width: 420px;
+            padding: 30px 25px; 
             text-align: center;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
-            animation: fadeIn 0.4s ease-out;
-            transition: opacity 0.3s ease;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            box-shadow: 
+                0 8px 32px rgba(0, 242, 255, 0.12),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: fadeIn 0.5s ease-out;
+            transition: all 0.3s ease;
+        }
+        
+        .box:hover {
+            box-shadow: 
+                0 12px 40px rgba(0, 242, 255, 0.2),
+                inset 0 1px 0 rgba(255,255,255,0.15);
+            border-color: rgba(0, 242, 255, 0.6);
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(15px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        /* 📊 Заголовки */
+        .title { 
+            font-size: 20px; font-weight: 700; 
+            margin-bottom: 20px; letter-spacing: 3px; 
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+            text-transform: uppercase;
         }
         
         /* 👥 Выбор персонажа */
         .av-row { 
-            display: flex; gap: 25px; justify-content: center; 
+            display: flex; gap: 30px; justify-content: center; 
             margin: 25px 0; flex-wrap: wrap; 
         }
         .av-btn { 
             cursor: pointer; text-align: center; 
-            transition: transform 0.2s;
+            transition: all 0.25s ease;
+            padding: 10px;
+            border-radius: 16px;
         }
-        .av-btn:hover { transform: scale(1.05); }
+        .av-btn:hover { 
+            transform: scale(1.08); 
+            background: rgba(0, 242, 255, 0.1);
+        }
+        .av-btn:active { transform: scale(1.02); }
         .av-btn img { 
-            width: 90px; height: 90px; border-radius: 50%; 
-            border: 2px solid #00f2ff; object-fit: cover;
-            background: rgba(0,242,255,0.1);
+            width: 95px; height: 95px; border-radius: 50%; 
+            border: 2px solid rgba(0, 242, 255, 0.8); 
+            object-fit: cover;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+            transition: all 0.3s;
         }
-        .av-btn div { margin-top: 8px; font-size: 14px; letter-spacing: 1px; }
+        .av-btn:hover img {
+            box-shadow: 0 0 35px rgba(0, 242, 255, 0.6);
+            border-color: #00f2ff;
+        }
+        .av-btn div { 
+            margin-top: 10px; font-size: 15px; 
+            letter-spacing: 2px; font-weight: 600;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+        }
         
-        /* 🔘 Кнопки */
+        /* 🔘 Кнопки — УЛУЧШЕННЫЕ */
         button { 
             width: 100%; 
-            background: rgba(0, 242, 255, 0.15); 
+            background: linear-gradient(135deg, 
+                rgba(0, 242, 255, 0.2) 0%, 
+                rgba(0, 242, 255, 0.1) 100%); 
             color: #00f2ff; 
-            border: 1px solid #00f2ff; 
-            padding: 14px; margin-top: 12px; 
-            font-weight: 600; font-size: 15px;
-            border-radius: 12px; cursor: pointer; 
-            transition: all 0.2s;
-            letter-spacing: 0.5px;
+            border: 1px solid rgba(0, 242, 255, 0.5); 
+            padding: 16px 20px; margin-top: 14px; 
+            font-weight: 700; font-size: 15px;
+            border-radius: 14px; cursor: pointer; 
+            transition: all 0.25s ease;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative; overflow: hidden;
         }
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, rgba(0, 242, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        button:hover::before { left: 100%; }
         button:hover { 
             background: rgba(0, 242, 255, 0.3); 
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.5);
+            border-color: #00f2ff;
+            transform: translateY(-2px);
         }
-        button:active { transform: scale(0.98); }
+        button:active { transform: translateY(0) scale(0.98); }
+        
+        /* 💎 Премиум кнопка */
+        button.premium {
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.25) 0%, 
+                rgba(255, 165, 0, 0.15) 100%);
+            border-color: rgba(255, 215, 0, 0.6);
+            color: #ffd700;
+        }
+        button.premium:hover {
+            background: rgba(255, 215, 0, 0.4);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
         
         /* 📝 Поле ввода */
         input { 
-            width: 100%; background: rgba(255,255,255,0.05); 
-            border: none; border-bottom: 2px solid #00f2ff; 
+            width: 100%; background: rgba(255,255,255,0.06); 
+            border: 1px solid rgba(0, 242, 255, 0.4); 
+            border-bottom: 2px solid #00f2ff; 
             color: #fff; text-align: center; 
-            margin: 15px 0 25px; padding: 12px;
-            font-size: 18px; outline: none; 
-            border-radius: 8px 8px 0 0;
+            margin: 20px 0 25px; padding: 15px;
+            font-size: 19px; outline: none; 
+            border-radius: 14px;
+            transition: all 0.3s;
         }
-        input::placeholder { color: rgba(0, 242, 255, 0.6); }
-        
-        /* 📊 Заголовки */
-        .title { 
-            font-size: 18px; font-weight: bold; 
-            margin-bottom: 15px; letter-spacing: 2px; 
-            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        input:focus {
+            background: rgba(0, 242, 255, 0.1);
+            border-color: #00f2ff;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
         }
+        input::placeholder { color: rgba(0, 242, 255, 0.5); }
         
         /* 📄 Результат */
         #resultText { 
-            min-height: 80px; display: flex; 
+            min-height: 100px; display: flex; 
             align-items: center; justify-content: center;
-            font-size: 16px; line-height: 1.5;
-            margin-bottom: 15px;
+            font-size: 16px; line-height: 1.7;
+            margin-bottom: 20px;
+            text-align: left;
         }
+        
+        /* 💰 Монетизация блок */
+        .monetization-block {
+            margin-top: 20px; padding-top: 20px;
+            border-top: 1px solid rgba(0, 242, 255, 0.3);
+        }
+        .price-tag {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        /* 📊 Прогресс бары биоритмов */
+        .bio-bar {
+            width: 100%; height: 8px;
+            background: rgba(0, 242, 255, 0.2);
+            border-radius: 4px;
+            margin: 8px 0 15px;
+            overflow: hidden;
+        }
+        .bio-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00f2ff, #00ff88);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        /* ⚡ Анимация пульсации */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* 🔔 Уведомления */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            border: 1px solid rgba(0, 242, 255, 0.5);
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+        }
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
     <!-- 🎥 Видео-плеер -->
     <video id="bg-video" autoplay muted playsinline loop></video>
+    <div class="video-overlay"></div>
     
     <!-- 🎨 Интерфейс -->
     <div class="ui">
         <!-- Экран 0: Выбор персонажа -->
         <div id="step0" class="box">
-            <div class="title">ВЫБЕРИ ПРОВОДНИКА</div>
+            <div class="title">✨ ВЫБЕРИ ПРОВОДНИКА</div>
             <div class="av-row">
                 <div class="av-btn" onclick="goStep1('female')">
-                    <!-- ✅ Исправлен путь: убрана лишняя точка -->
                     <img src="f_avatar.jpg.jpg" onerror="this.src='f_avatar.jpg'" alt="Нейра">
                     <div>НЕЙРА</div>
                 </div>
                 <div class="av-btn" onclick="goStep1('male')">
-                    <!-- ✅ Исправлен путь: было "jpg..jpg" -->
                     <img src="m_avatar.jpg.jpg" onerror="this.src='m_avatar.jpg'" alt="Алекс">
                     <div>АЛЕКС</div>
                 </div>
+            </div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 15px;">
+                🔮 Первый сеанс — бесплатно
             </div>
         </div>
         
         <!-- Экран 1: Ввод даты -->
         <div id="step1" class="box" style="display:none">
-            <div class="title">ВВЕДИ ДАТУ РОЖДЕНИЯ</div>
-            <input type="text" id="dateInput" placeholder="ДД.ММ.ГГГГ" maxlength="10">
-            <button onclick="goStep2()">ИНИЦИАЛИЗИРОВАТЬ</button>
+            <div class="title">📅 ВВЕДИ ДАТУ РОЖДЕНИЯ</div>
+            <input type="tel" id="dateInput" placeholder="ДД.ММ.ГГГГ" maxlength="10">
+            <button onclick="goStep2()">🔗 ИНИЦИАЛИЗИРОВАТЬ</button>
+            <div style="font-size: 11px; opacity: 0.6; margin-top: 15px;">
+                🔒 Данные не сохраняются. Конфиденциально.
+            </div>
         </div>
         
         <!-- Экран 2: Меню модулей -->
         <div id="step2" class="box" style="display:none">
-            <div class="title">ВЫБЕРИ МОДУЛЬ</div>
+            <div class="title">🎯 ВЫБЕРИ МОДУЛЬ</div>
             <button onclick="runModule(7)">🔮 АСТРО-ПРОГНОЗ</button>
             <button onclick="runModule(6)">🔢 НУМЕРОЛОГИЯ</button>
             <button onclick="runModule(8)">📊 БИО-РИТМЫ</button>
+            
+            <!-- 💎 Премиум блок -->
+            <div class="monetization-block">
+                <div class="price-tag">⭐ 50 STARS</div>
+                <button class="premium" onclick="buyPremium()">
+                    💎 ПОЛНЫЙ РАЗБОР (3 В 1)
+                </button>
+                <div style="font-size: 11px; opacity: 0.6; margin-top: 10px;">
+                    Включает все модули + персональные рекомендации
+                </div>
+            </div>
         </div>
         
         <!-- Экран 3: Результат -->
         <div id="step3" class="box" style="display:none">
-            <div class="title">РЕЗУЛЬТАТ</div>
-            <div id="resultText">⏳ ИДЁТ АНАЛИЗ ДАННЫХ...</div>
+            <div class="title">✅ РЕЗУЛЬТАТ</div>
+            <div id="resultText" class="pulse">⏳ ИДЁТ АНАЛИЗ ДАННЫХ...</div>
+            
+            <!-- 💰 Блок после результата -->
+            <div class="monetization-block" id="upsellBlock" style="display:none">
+                <div style="font-size: 14px; margin-bottom: 10px;">
+                    🌟 Хочешь углублённый анализ?
+                </div>
+                <button class="premium" onclick="buyPremium()">
+                    ⭐ РАЗБЛОКИРОВАТЬ (50 STARS)
+                </button>
+                <button onclick="shareResult()">📤 ПОДЕЛИТЬСЯ</button>
+            </div>
+            
             <button onclick="location.reload()">🔄 ЗАНОВО</button>
         </div>
     </div>
+    
+    <!-- 🔔 Уведомления -->
+    <div id="toast" class="toast"></div>
 
     <script>
-        // ✅ Используем старый синтаксис для совместимости с Jekyll
+        // ✅ Telegram WebApp
         var tg = window.Telegram.WebApp;
-        if (tg) { tg.expand(); tg.enableClosingConfirmation(); }
+        if (tg) { 
+            tg.expand(); 
+            tg.enableClosingConfirmation();
+            tg.ready();
+        }
         
         var currentHero = 'female';
         var videoPlayer = document.getElementById('bg-video');
-        var isVideoPlaying = false;
-
-        // 🎬 Универсальная функция загрузки видео с фолбэком
+        var VIDEO_SPEED = 0.7; // 🐌 Замедление видео (0.5 = очень медленно, 1.0 = норма)
+        
+        // 🎬 Загрузка видео с замедлением
         function changeVideo(n, isLoop) {
             var pathPrimary = currentHero + '/' + n + '.mp4.mp4';
             var pathFallback = currentHero + '/' + n + '.mp4';
             
             videoPlayer.pause();
             videoPlayer.loop = !!isLoop;
+            videoPlayer.playbackRate = VIDEO_SPEED; // 🐌 Замедление
             videoPlayer.src = pathPrimary;
             
             videoPlayer.play().catch(function(err) {
@@ -185,30 +356,35 @@
                 });
             });
         }
-
+        
         // 👉 Шаг 1: Выбор героя
         function goStep1(hero) {
             currentHero = hero;
             document.getElementById('step0').style.display = 'none';
             document.getElementById('step1').style.display = 'block';
             changeVideo(1, false);
+            haptic('light');
         }
-
+        
         // 👉 Шаг 2: Дата введена
         function goStep2() {
             var dateVal = document.getElementById('dateInput').value;
             if (!dateVal || dateVal.length < 8) {
-                alert('⚠️ Введите дату в формате ДД.ММ.ГГГГ');
+                showToast('⚠️ Введите дату в формате ДД.ММ.ГГГГ');
+                haptic('error');
                 return;
             }
             document.getElementById('step1').style.display = 'none';
             document.getElementById('step2').style.display = 'block';
             changeVideo(2, true);
+            haptic('success');
         }
-
+        
         // 👉 Запуск модуля
         function runModule(num) {
             document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+            haptic('light');
             
             // Видео модуля (6,7,8)
             changeVideo(num, false);
@@ -220,24 +396,231 @@
                 // Ещё 4 сек → результат (видео 4) + показ текста
                 setTimeout(function() {
                     changeVideo(4, true);
-                    document.getElementById('step3').style.display = 'block';
                     
-                    // 🎲 Генерация "умного" текста
                     var date = document.getElementById('dateInput').value;
-                    var modules = {6: 'НУМЕРОЛОГИЧЕСКИЙ', 7: 'АСТРОЛОГИЧЕСКИЙ', 8: 'БИОРИТМИЧЕСКИЙ'};
-                    var modName = modules[num] || 'СИСТЕМНЫЙ';
+                    var prediction = generateSmartPrediction(date, num);
                     
-                    document.getElementById('resultText').innerHTML = 
-                        '✅ ' + modName + ' АНАЛИЗ ЗАВЕРШЁН.<br>' +
-                        '📅 Дата: ' + date + '<br>' +
-                        '🔗 КОД ПРИНЯТ СИСТЕМОЙ.<br><small>Готов к синхронизации...</small>';
+                    document.getElementById('resultText').innerHTML = prediction;
+                    document.getElementById('upsellBlock').style.display = 'block';
+                    haptic('success');
                 }, 4000);
             }, 4000);
         }
-
+        
+        // 💎 Покупка премиума
+        function buyPremium() {
+            haptic('warning');
+            
+            if (tg && tg.sendInvoice) {
+                // Telegram Stars / Invoice
+                tg.sendInvoice({
+                    title: 'Полный разбор Оракула',
+                    description: 'Все 3 модуля + персональные рекомендации',
+                    payload: 'premium_oracle_' + Date.now(),
+                    provider_token: '', // Для Stars не нужен
+                    currency: 'XTR', // Telegram Stars
+                    prices: [{ label: 'Доступ', amount: 50 }], // 50 Stars
+                    start_parameter: 'premium_oracle'
+                });
+            } else {
+                // Фолбэк — показываем сообщение
+                showToast('⭐ Премиум доступен в Telegram');
+                setTimeout(function() {
+                    alert('💎 Полный разбор:\n\n' +
+                          '✅ Астропрогноз\n' +
+                          '✅ Нумерология\n' +
+                          '✅ Биоритмы\n' +
+                          '✅ Персональные рекомендации\n\n' +
+                          'Цена: 50 Stars\n\n' +
+                          'Для покупки используйте кнопку в Telegram.');
+                }, 500);
+            }
+        }
+        
+        // 📤 Поделиться результатом
+        function shareResult() {
+            var text = encodeURIComponent('🔮 Мой прогноз от Neuro-Lab:\n\n' + 
+                                         document.getElementById('resultText').innerText + 
+                                         '\n\nПроверь себя: t.me/yourbot');
+            
+            if (tg && tg.openTelegramLink) {
+                tg.openTelegramLink('https://t.me/share/url?url=&text=' + text);
+            } else {
+                window.open('https://t.me/share/url?url=&text=' + text, '_blank');
+            }
+            haptic('light');
+        }
+        
+        // 🧠 УМНЫЕ ПРОГНОЗЫ (без API)
+        function generateSmartPrediction(date, moduleType) {
+            var parts = date.split('.');
+            var day = parseInt(parts[0]), month = parseInt(parts[1]);
+            
+            var result = "";
+            
+            if (moduleType === 6) { // Нумерология
+                var lp = calculateLifePath(date);
+                result = "<b>🔢 Число Жизненного Пути: " + lp + "</b><br><br>" + 
+                         getNumerologyPrediction(lp);
+            } 
+            else if (moduleType === 8) { // Биоритмы
+                var bio = calculateBiorhythms(date);
+                result = "<b>📊 Твои биоритмы сегодня:</b><br><br>" +
+                         createBioBar("💪 Физический", bio.physical) +
+                         createBioBar("😊 Эмоциональный", bio.emotional) +
+                         createBioBar("🧠 Интеллектуальный", bio.intellectual) +
+                         "<br>" + getBiorhythmAdvice(bio);
+            } 
+            else if (moduleType === 7) { // Астро
+                var sign = getZodiacSign(day, month);
+                result = "<b>♈ Твой знак: " + sign + "</b><br><br>" + 
+                         getAstroPrediction(sign);
+            }
+            
+            return result + "<br><br><small style='opacity:0.6'>🔋 Энергия системы: " + 
+                   (85 + Math.floor(Math.random() * 15)) + "%</small>";
+        }
+        
+        function createBioBar(label, value) {
+            var percent = Math.abs(value);
+            var color = value > 0 ? '#00ff88' : '#ff4444';
+            return "<div style='text-align:left;font-size:13px;margin:5px 0'>" + label + ": " + value + "%</div>" +
+                   "<div class='bio-bar'><div class='bio-fill' style='width:" + percent + "%;background:" + color + "'></div></div>";
+        }
+        
+        // 🔢 Нумерология
+        function calculateLifePath(dateStr) {
+            var sum = dateStr.replace(/\D/g, '').split('').reduce(function(a, b) {
+                return parseInt(a) + parseInt(b);
+            }, 0);
+            
+            while (sum > 9 && sum !== 11 && sum !== 22) {
+                sum = String(sum).split('').reduce(function(a, b) {
+                    return parseInt(a) + parseInt(b);
+                }, 0);
+            }
+            return sum;
+        }
+        
+        function getNumerologyPrediction(number) {
+            var meanings = {
+                1: "🔥 Ты — лидер. Сегодня энергия независимости на пике. Действуй смело, но слушай интуицию.",
+                2: "🤝 Гармония и партнёрство — твой ключ. Избегай конфликтов, ищи компромиссы.",
+                3: "🎨 Творческий поток открыт. Выражай себя — слова, искусство, общение принесут удачу.",
+                4: "🏗️ Время структуры. Планируй, систематизируй — фундамент будущих успехов закладывается сейчас.",
+                5: "🌪️ Перемены стучатся. Будь гибким, пробуй новое, но не теряй фокус.",
+                6: "❤️ Забота о близких и ответственность — твой приоритет. Баланс между «себе» и «другим».",
+                7: "🔮 Время внутреннего поиска. Медитация, анализ, тишина дадут ответы.",
+                8: "💼 Энергия изобилия. Финансы, карьера, власть — действуй стратегически.",
+                9: "🕊️ Завершение цикла. Отпусти старое, будь мудрее, готовься к новому этапу.",
+                11: "✨ Мастер-число: интуиция обострена. Доверяй знакам — ты на пороге озарения.",
+                22: "🌍 Мастер-строитель. Твои идеи могут изменить реальность. Действуй масштабно, но с заземлением."
+            };
+            return meanings[number] || "🌀 Энергия в движении. Прислушайся к внутреннему компасу.";
+        }
+        
+        // 📊 Биоритмы
+        function calculateBiorhythms(dateStr) {
+            var parts = dateStr.split('.');
+            var birthDate = new Date(parts[2], parts[1] - 1, parts[0]);
+            var today = new Date();
+            var daysLived = Math.floor((today - birthDate) / (1000 * 60 * 60 * 24));
+            
+            return {
+                physical: Math.round(Math.sin((2 * Math.PI * daysLived) / 23) * 100),
+                emotional: Math.round(Math.sin((2 * Math.PI * daysLived) / 28) * 100),
+                intellectual: Math.round(Math.sin((2 * Math.PI * daysLived) / 33) * 100)
+            };
+        }
+        
+        function getBiorhythmAdvice(values) {
+            var advice = [];
+            if (values.physical > 50) advice.push("💪 Физический тонус высок — идеален для спорта.");
+            else if (values.physical < -50) advice.push("😴 Тело просит отдыха. Восстанови силы.");
+            
+            if (values.emotional > 50) advice.push("😊 Эмоциональный подъём — время для общения.");
+            else if (values.emotional < -50) advice.push("🌧️ Чувствительность повышена. Береги нервы.");
+            
+            if (values.intellectual > 50) advice.push("🧠 Ясный ум — решай сложные задачи.");
+            else if (values.intellectual < -50) advice.push("🤯 Ментальная усталость. Делай перерывы.");
+            
+            return advice.join("<br>") || "⚖️ Баланс. Поддерживай ритм без крайностей.";
+        }
+        
+        // ♈ Астрология
+        function getZodiacSign(day, month) {
+            var signs = [
+                { name: "♑ Козерог", start: [12, 22], end: [1, 19] },
+                { name: "♒ Водолей", start: [1, 20], end: [2, 18] },
+                { name: "♓ Рыбы", start: [2, 19], end: [3, 20] },
+                { name: "♈ Овен", start: [3, 21], end: [4, 19] },
+                { name: "♉ Телец", start: [4, 20], end: [5, 20] },
+                { name: "♊ Близнецы", start: [5, 21], end: [6, 20] },
+                { name: "♋ Рак", start: [6, 21], end: [7, 22] },
+                { name: "♌ Лев", start: [7, 23], end: [8, 22] },
+                { name: "♍ Дева", start: [8, 23], end: [9, 22] },
+                { name: "♎ Весы", start: [9, 23], end: [10, 22] },
+                { name: "♏ Скорпион", start: [10, 23], end: [11, 21] },
+                { name: "♐ Стрелец", start: [11, 22], end: [12, 21] }
+            ];
+            
+            for (var i = 0; i < signs.length; i++) {
+                var s = signs[i];
+                if ((month === s.start[0] && day >= s.start[1]) || 
+                    (month === s.end[0] && day <= s.end[1])) {
+                    return s.name;
+                }
+            }
+            return "✨ Звёзды скрыты...";
+        }
+        
+        function getAstroPrediction(sign) {
+            var predictions = {
+                "♈ Овен": "🔥 Марс усиливает твою решимость. Начни то, что откладывал.",
+                "♉ Телец": "🌿 Венера приносит гармонию. Наслаждайся моментом.",
+                "♊ Близнецы": "💬 Меркурий открывает каналы общения. Пиши, звони, договаривайся.",
+                "♋ Рак": "🌙 Луна усиливает интуицию. Прислушайся к внутреннему голосу.",
+                "♌ Лев": "☀️ Солнце в твоём знаке. Сияй, вдохновляй, будь в центре.",
+                "♍ Дева": "🔍 Аналитический ум на пике. Разбери хаос, наведи порядок.",
+                "♎ Весы": "⚖️ Баланс и эстетика — твои союзники. Принимай решения сердцем.",
+                "♏ Скорпион": "🦂 Плутон даёт трансформационную энергию. Отпускай старое.",
+                "♐ Стрелец": "🏹 Юпитер расширяет горизонты. Путешествуй, учись, мечтай.",
+                "♑ Козерог": "🪨 Сатурн требует дисциплины. Шаг за шагом — и ты построишь империю.",
+                "♒ Водолей": "⚡ Уран приносит инсайты. Будь оригинальным, ломай шаблоны.",
+                "♓ Рыбы": "🌊 Нептун открывает порталы воображения. Твори, медитируй."
+            };
+            return predictions[sign] || "🌌 Звёзды шепчут: доверяй пути.";
+        }
+        
+        // 🔔 Уведомления
+        function showToast(message) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        }
+        
+        // 📳 Тактильная отдача (Haptic Feedback)
+        function haptic(type) {
+            if (tg && tg.HapticFeedback) {
+                if (type === 'light') tg.HapticFeedback.impactOccurred('light');
+                else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+                else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+                else if (type === 'warning') tg.HapticFeedback.notificationOccurred('warning');
+            }
+        }
+        
         // 🎹 Поддержка Enter в поле ввода
         document.getElementById('dateInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') goStep2();
+        });
+        
+        // 📝 Автоформатирование даты
+        document.getElementById('dateInput').addEventListener('input', function(e) {
+            var val = e.target.value.replace(/\D/g, '');
+            if (val.length >= 2) val = val.slice(0,2) + '.' + val.slice(2);
+            if (val.length >= 5) val = val.slice(0,5) + '.' + val.slice(5,9);
+            e.target.value = val;
         });
     </script>
 </body>
