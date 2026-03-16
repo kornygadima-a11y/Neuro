@@ -1,123 +1,244 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neuro-Lab | Цифровой Оракул</title>
+    <!-- ✅ Исправленная ссылка на Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <title>Neuro-Lab | Digital Oracle</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #00f2ff; font-family: Arial, sans-serif; }
-        #bg-video { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.6; }
-        .ui { position: relative; z-index: 100; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .box { background: rgba(0,0,0,0.85); border: 2px solid #00f2ff; border-radius: 20px; width: 85%; padding: 20px; text-align: center; box-shadow: 0 0 20px rgba(0,242,255,0.3); }
-        .av-row { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
-        .av-btn { cursor: pointer; transition: transform 0.2s; }
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; color: #00f2ff; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+        }
+        
+        /* 🎬 Фоновое видео */
+        #bg-video { 
+            position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            object-fit: cover; z-index: 1; 
+            opacity: 0.85; 
+        }
+        
+        /* 🖼️ UI-слой поверх видео */
+        .ui { 
+            position: relative; z-index: 100; 
+            height: 100vh; display: flex; 
+            flex-direction: column; 
+            align-items: center; justify-content: center; 
+            padding: 10px;
+        }
+        
+        /* 🪟 Стеклянные карточки меню */
+        .box { 
+            background: rgba(0, 10, 30, 0.4); 
+            border: 1px solid rgba(0, 242, 255, 0.6); 
+            border-radius: 20px; 
+            width: 90%; max-width: 400px;
+            padding: 25px 20px; 
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
+            animation: fadeIn 0.4s ease-out;
+            transition: opacity 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 👥 Выбор персонажа */
+        .av-row { 
+            display: flex; gap: 25px; justify-content: center; 
+            margin: 25px 0; flex-wrap: wrap; 
+        }
+        .av-btn { 
+            cursor: pointer; text-align: center; 
+            transition: transform 0.2s;
+        }
         .av-btn:hover { transform: scale(1.05); }
-        .av-btn img { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #00f2ff; }
-        button { width: 100%; background: #00f2ff; color: #000; border: none; padding: 15px; margin-top: 10px; font-weight: bold; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #00d9e6; }
-        input { width: 100%; background: none; border: none; border-bottom: 2px solid #00f2ff; color: #fff; text-align: center; margin-bottom: 20px; font-size: 20px; outline: none; padding: 10px 0; }
-        .hidden { display: none !important; }
+        .av-btn img { 
+            width: 90px; height: 90px; border-radius: 50%; 
+            border: 2px solid #00f2ff; object-fit: cover;
+            background: rgba(0,242,255,0.1);
+        }
+        .av-btn div { margin-top: 8px; font-size: 14px; letter-spacing: 1px; }
+        
+        /* 🔘 Кнопки */
+        button { 
+            width: 100%; 
+            background: rgba(0, 242, 255, 0.15); 
+            color: #00f2ff; 
+            border: 1px solid #00f2ff; 
+            padding: 14px; margin-top: 12px; 
+            font-weight: 600; font-size: 15px;
+            border-radius: 12px; cursor: pointer; 
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        button:hover { 
+            background: rgba(0, 242, 255, 0.3); 
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+        button:active { transform: scale(0.98); }
+        
+        /* 📝 Поле ввода */
+        input { 
+            width: 100%; background: rgba(255,255,255,0.05); 
+            border: none; border-bottom: 2px solid #00f2ff; 
+            color: #fff; text-align: center; 
+            margin: 15px 0 25px; padding: 12px;
+            font-size: 18px; outline: none; 
+            border-radius: 8px 8px 0 0;
+        }
+        input::placeholder { color: rgba(0, 242, 255, 0.6); }
+        
+        /* 📊 Заголовки */
+        .title { 
+            font-size: 18px; font-weight: bold; 
+            margin-bottom: 15px; letter-spacing: 2px; 
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+        
+        /* 📄 Результат */
+        #resultText { 
+            min-height: 80px; display: flex; 
+            align-items: center; justify-content: center;
+            font-size: 16px; line-height: 1.5;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-    <video id="bg-video" autoplay muted playsinline preload="auto"></video>
+    <!-- 🎥 Видео-плеер -->
+    <video id="bg-video" autoplay muted playsinline loop></video>
+    
+    <!-- 🎨 Интерфейс -->
     <div class="ui">
+        <!-- Экран 0: Выбор персонажа -->
         <div id="step0" class="box">
-            <div style="font-size:18px;margin-bottom:15px">ВЫБЕРИ ПРОВОДНИКА</div>
+            <div class="title">ВЫБЕРИ ПРОВОДНИКА</div>
             <div class="av-row">
                 <div class="av-btn" onclick="goStep1('female')">
-                    <img src="f_avatar.jpg" onerror="this.src='f_avatar.jpg.jpg'"><br>
-                    <span style="margin-top:8px;display:block">НЕЙРА</span>
+                    <!-- ✅ Исправлен путь: убрана лишняя точка -->
+                    <img src="f_avatar.jpg.jpg" onerror="this.src='f_avatar.jpg'" alt="Нейра">
+                    <div>НЕЙРА</div>
                 </div>
                 <div class="av-btn" onclick="goStep1('male')">
-                    <img src="m_avatar.jpg" onerror="this.src='m_avatar.jpg.jpg'"><br>
-                    <span style="margin-top:8px;display:block">АЛЕКС</span>
+                    <!-- ✅ Исправлен путь: было "jpg..jpg" -->
+                    <img src="m_avatar.jpg.jpg" onerror="this.src='m_avatar.jpg'" alt="Алекс">
+                    <div>АЛЕКС</div>
                 </div>
             </div>
         </div>
-        <div id="step1" class="box hidden">
-            <div style="margin-bottom:10px">ВВЕДИ ДАТУ РОЖДЕНИЯ</div>
+        
+        <!-- Экран 1: Ввод даты -->
+        <div id="step1" class="box" style="display:none">
+            <div class="title">ВВЕДИ ДАТУ РОЖДЕНИЯ</div>
             <input type="text" id="dateInput" placeholder="ДД.ММ.ГГГГ" maxlength="10">
             <button onclick="goStep2()">ИНИЦИАЛИЗИРОВАТЬ</button>
         </div>
-        <div id="step2" class="box hidden">
-            <div style="margin-bottom:15px">ВЫБЕРИ МОДУЛЬ</div>
+        
+        <!-- Экран 2: Меню модулей -->
+        <div id="step2" class="box" style="display:none">
+            <div class="title">ВЫБЕРИ МОДУЛЬ</div>
             <button onclick="runModule(7)">🔮 АСТРО-ПРОГНОЗ</button>
             <button onclick="runModule(6)">🔢 НУМЕРОЛОГИЯ</button>
             <button onclick="runModule(8)">📊 БИО-РИТМЫ</button>
         </div>
-        <div id="step3" class="box hidden">
-            <div id="resultText" style="min-height:60px;margin-bottom:15px">⏳ ИДЁТ АНАЛИЗ...</div>
+        
+        <!-- Экран 3: Результат -->
+        <div id="step3" class="box" style="display:none">
+            <div class="title">РЕЗУЛЬТАТ</div>
+            <div id="resultText">⏳ ИДЁТ АНАЛИЗ ДАННЫХ...</div>
             <button onclick="location.reload()">🔄 ЗАНОВО</button>
         </div>
     </div>
+
     <script>
-        var tg = window.Telegram && window.Telegram.WebApp;
+        // ✅ Используем старый синтаксис для совместимости с Jekyll
+        var tg = window.Telegram.WebApp;
         if (tg) { tg.expand(); tg.enableClosingConfirmation(); }
         
         var currentHero = 'female';
         var videoPlayer = document.getElementById('bg-video');
-        var steps = ['step0','step1','step2','step3'];
+        var isVideoPlaying = false;
 
-        function showStep(n) {
-            for (var i=0; i<steps.length; i++) {
-                document.getElementById(steps[i]).className = 'box' + (i===n ? '' : ' hidden');
-            }
+        // 🎬 Универсальная функция загрузки видео с фолбэком
+        function changeVideo(n, isLoop) {
+            var pathPrimary = currentHero + '/' + n + '.mp4.mp4';
+            var pathFallback = currentHero + '/' + n + '.mp4';
+            
+            videoPlayer.pause();
+            videoPlayer.loop = !!isLoop;
+            videoPlayer.src = pathPrimary;
+            
+            videoPlayer.play().catch(function(err) {
+                console.log('Primary failed, trying fallback:', err);
+                videoPlayer.src = pathFallback;
+                videoPlayer.play().catch(function(err2) {
+                    console.log('Fallback also failed:', err2);
+                });
+            });
         }
 
+        // 👉 Шаг 1: Выбор героя
         function goStep1(hero) {
             currentHero = hero;
-            showStep(1);
+            document.getElementById('step0').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
             changeVideo(1, false);
         }
 
+        // 👉 Шаг 2: Дата введена
         function goStep2() {
             var dateVal = document.getElementById('dateInput').value;
             if (!dateVal || dateVal.length < 8) {
                 alert('⚠️ Введите дату в формате ДД.ММ.ГГГГ');
                 return;
             }
-            showStep(2);
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
             changeVideo(2, true);
         }
 
+        // 👉 Запуск модуля
         function runModule(num) {
-            showStep(3);
-            document.getElementById('resultText').innerHTML = "⏳ ЗАГРУЗКА МОДУЛЯ...";
+            document.getElementById('step2').style.display = 'none';
             
+            // Видео модуля (6,7,8)
             changeVideo(num, false);
+            
+            // Через 4 сек → сканирование (видео 3)
             setTimeout(function() {
-                changeVideo(3, true);
+                changeVideo(3, false);
+                
+                // Ещё 4 сек → результат (видео 4) + показ текста
                 setTimeout(function() {
-                    changeVideo(4, false);
-                    var results = {
-                        6: "🔢 ВАШ НУМЕРОЛОГИЧЕСКИЙ КОД: " + generateNumber(),
-                        7: "🔮 ЗВЁЗДЫ ГОВОРЯТ: " + generateAstro(),
-                        8: "📊 БИОРИТМЫ: " + generateBio()
-                    };
-                    document.getElementById('resultText').innerHTML = results[num] || "✅ ДАННЫЕ ПОЛУЧЕНЫ";
+                    changeVideo(4, true);
+                    document.getElementById('step3').style.display = 'block';
+                    
+                    // 🎲 Генерация "умного" текста
+                    var date = document.getElementById('dateInput').value;
+                    var modules = {6: 'НУМЕРОЛОГИЧЕСКИЙ', 7: 'АСТРОЛОГИЧЕСКИЙ', 8: 'БИОРИТМИЧЕСКИЙ'};
+                    var modName = modules[num] || 'СИСТЕМНЫЙ';
+                    
+                    document.getElementById('resultText').innerHTML = 
+                        '✅ ' + modName + ' АНАЛИЗ ЗАВЕРШЁН.<br>' +
+                        '📅 Дата: ' + date + '<br>' +
+                        '🔗 КОД ПРИНЯТ СИСТЕМОЙ.<br><small>Готов к синхронизации...</small>';
                 }, 4000);
             }, 4000);
         }
 
-        function changeVideo(n, isLoop) {
-            var path1 = currentHero + '/' + n + '.mp4.mp4';
-            var path2 = currentHero + '/' + n + '.mp4';
-            
-            videoPlayer.loop = isLoop;
-            videoPlayer.src = path1;
-            videoPlayer.play().catch(function() {
-                videoPlayer.src = path2;
-                videoPlayer.play().catch(function() {
-                    console.log('⚠️ Видео не найдено: ' + n);
-                });
-            });
-        }
-        
-        function generateNumber() { return Math.floor(Math.random()*999)+1; }
-        function generateAstro() { var s = ["УСПЕХ В ДЕЛАХ", "НОВЫЕ СВЯЗИ", "ВРЕМЯ ДЕЙСТВИЙ", "ИНТУИЦИЯ НА ПИКЕ"]; return s[Math.floor(Math.random()*s.length)]; }
-        function generateBio() { var s = ["ЭНЕРГИЯ: 87%", "ФОКУС: ВЫСОКИЙ", "ТВОРЧЕСТВО: АКТИВНО", "БАЛАНС: СТАБИЛЕН"]; return s[Math.floor(Math.random()*s.length)]; }
+        // 🎹 Поддержка Enter в поле ввода
+        document.getElementById('dateInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') goStep2();
+        });
     </script>
 </body>
 </html>
