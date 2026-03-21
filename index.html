@@ -1,1 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neuro-Lab | Цифровой Оракул</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: #fff; overflow-x: hidden; min-height: 100vh; position: relative; }
+        
+        #intro-video { position: fixed; top: 50%; left: 50%; min-width: 100%; min-height: 100%; transform: translate(-50%, -50%); z-index: -1; object-fit: cover; opacity: 0; transition: opacity 0.5s ease; }
+        #intro-video.playing { opacity: 0.4; }
+        #character-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -2; opacity: 0; transition: opacity 0.5s ease; }
+        #character-bg.visible { opacity: 0.3; }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        
+        .container { max-width: 480px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+        .screen { display: none; animation: fadeIn 0.5s ease; flex: 1; }
+        .screen.active { display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .cosmic-header { text-align: center; padding: 25px 0 15px; }
+        .cosmic-header h1 { font-size: 2.3rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 3px; animation: glow 3s ease-in-out infinite; }
+        @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5)); } 50% { filter: drop-shadow(0 0 25px rgba(118, 75, 162, 0.9)); } }
+        .slogan { color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 10px; font-weight: 500; }
+        .subtitle { color: rgba(255, 255, 255, 0.6); font-size: 0.95rem; letter-spacing: 2px; }
+        
+        .trial-badge { background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #000; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; display: inline-block; margin-bottom: 15px; animation: pulse-badge 1.5s ease-in-out infinite; box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        @keyframes pulse-badge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        
+        .avatars-container { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
+        .avatar-card { position: relative; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 18px; display: flex; align-items: center; gap: 18px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+        .avatar-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 15px 45px rgba(102, 126, 234, 0.5); border-color: rgba(102, 126, 234, 0.6); }
+        .avatar-card.neyra:hover { box-shadow: 0 15px 45px rgba(138, 43, 226, 0.6); border-color: rgba(138, 43, 226, 0.7); }
+        .avatar-card.alex:hover { box-shadow: 0 15px 45px rgba(0, 255, 213, 0.6); border-color: rgba(0, 255, 213, 0.7); }
+        .avatar-image { width: 80px; height: 80px; border-radius: 50%; background-size: cover; background-position: center; border: 3px solid rgba(255, 255, 255, 0.4); flex-shrink: 0; box-shadow: 0 0 25px rgba(102, 126, 234, 0.6); }
+        .avatar-card.neyra .avatar-image { box-shadow: 0 0 25px rgba(138, 43, 226, 0.7); border-color: rgba(138, 43, 226, 0.6); }
+        .avatar-card.alex .avatar-image { box-shadow: 0 0 25px rgba(0, 255, 213, 0.7); border-color: rgba(0, 255, 213, 0.6); }
+        .avatar-info h3 { font-size: 1.3rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 2px; }
+        .avatar-card.neyra .avatar-info h3 { color: #a855f7; text-shadow: 0 0 15px rgba(168, 85, 247, 0.6); }
+        .avatar-card.alex .avatar-info h3 { color: #00ffd5; text-shadow: 0 0 15px rgba(0, 255, 213, 0.6); }
+        .avatar-info p { color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; }
+        
+        .date-input-container { display: flex; justify-content: center; gap: 10px; margin: 25px 0; }
+        .date-field { width: 70px; padding: 16px 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 12px; color: #fff; font-size: 1.2rem; text-align: center; backdrop-filter: blur(10px); outline: none; transition: all 0.3s; }
+        .date-field:focus { border-color: #667eea; box-shadow: 0 0 25px rgba(102, 126, 234, 0.4); background: rgba(255, 255, 255, 0.15); }
+        .date-separator { font-size: 1.5rem; color: rgba(255, 255, 255, 0.5); display: flex; align-items: center; }
+        .input-label { display: block; margin-bottom: 10px; color: rgba(255, 255, 255, 0.9); font-size: 1.05rem; text-align: center; }
+        
+        .btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 15px; color: #fff; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 10px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); position: relative; overflow: hidden; }
+        .btn::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255, 255, 255, 0.3); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s, height 0.4s; }
+        .btn:active::after { width: 200px; height: 200px; }
+        .btn:hover { box-shadow: 0 10px 35px rgba(102, 126, 234, 0.7); transform: translateY(-2px); }
+        .btn:active { transform: scale(0.98) translateY(0); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: none; }
+        .btn-premium { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5); }
+        
+        .modules-grid { display: grid; gap: 12px; margin: 20px 0; }
+        .module-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; }
+        .module-card::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transition: left 0.5s; }
+        .module-card:hover::before { left: 100%; }
+        .module-card:hover { transform: translateX(8px); background: rgba(255, 255, 255, 0.12); border-color: rgba(102, 126, 234, 0.6); }
+        .module-icon { font-size: 2.2rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+        .module-info h3 { margin-bottom: 4px; font-size: 1.1rem; font-weight: 600; }
+        .module-info p { color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; }
+        .module-price { margin-left: auto; background: rgba(102, 126, 234, 0.25); padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 0 12px rgba(102, 126, 234, 0.3); white-space: nowrap; }
+        .module-card.free .module-price { background: rgba(0, 255, 136, 0.25); color: #00ff88; box-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
+        .module-card.premium .module-price { background: rgba(245, 87, 108, 0.25); color: #f5576c; box-shadow: 0 0 12px rgba(245, 87, 108, 0.4); }
+        
+        .trial-notice { background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 204, 106, 0.15) 100%); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 15px; padding: 12px 16px; margin-bottom: 16px; text-align: center; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .trial-notice .days-left { font-size: 1.2rem; font-weight: 700; color: #00ff88; }
+        .trial-notice .text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.8); margin-top: 4px; }
+        
+        .referral-box { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 15px; padding: 16px; margin: 16px 0; text-align: center; }
+        .referral-box .bonus { font-size: 1.3rem; font-weight: 700; color: #a855f7; margin-bottom: 8px; }
+        .referral-box .text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); margin-bottom: 12px; }
+        .referral-count { font-size: 1.1rem; color: #00ff88; font-weight: 600; }
+        .referral-progress { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); margin-top: 8px; }
+        
+        .loading-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+        .loading-spinner { width: 90px; height: 90px; border: 5px solid rgba(255, 255, 255, 0.1); border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite, glow-spinner 2s ease-in-out infinite; margin-bottom: 25px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes glow-spinner { 0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); } 50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.9); } }
+        .loading-text { font-size: 1.2rem; margin-bottom: 12px; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .loading-steps { color: rgba(255, 255, 255, 0.6); font-size: 0.85rem; line-height: 1.9; }
+        
+        .progress-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px; transition: width 0.3s ease; box-shadow: 0 0 12px rgba(102, 126, 234, 0.5); }
+        
+        .result-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 22px; padding: 25px; margin: 20px 0; box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5); }
+        .result-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+        .result-title { font-size: 1.6rem; margin-bottom: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .result-subtitle { color: rgba(255, 255, 255, 0.6); font-size: 0.85rem; }
+        .result-section { margin-bottom: 25px; }
+        .result-section h3 { color: #a855f7; margin-bottom: 12px; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; text-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+        .result-text { color: rgba(255, 255, 255, 0.95); line-height: 1.7; font-size: 1rem; }
+        .insight-box { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); border-left: 4px solid #667eea; padding: 16px; border-radius: 10px; margin: 18px 0; font-style: italic; box-shadow: 0 5px 18px rgba(102, 126, 234, 0.2); }
+        
+        .action-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .action-buttons .btn { flex: 1; margin-top: 0; }
+        
+        .hint { text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin-top: 20px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .social-proof { text-align: center; margin: 20px 0; padding: 14px; background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 204, 106, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(0, 255, 136, 0.25); box-shadow: 0 5px 18px rgba(0, 255, 136, 0.15); }
+        .social-proof .count { font-size: 1.5rem; font-weight: 800; color: #00ff88; margin-bottom: 4px; text-shadow: 0 0 18px rgba(0, 255, 136, 0.5); }
+        .social-proof .text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.85); }
+        .timer-display { font-family: 'Courier New', monospace; font-size: 1.3rem; color: #00ff88; text-shadow: 0 0 12px rgba(0, 255, 136, 0.6); }
+        
+        @media (max-width: 480px) { .cosmic-header h1 { font-size: 1.9rem; } .avatar-card { padding: 14px; } .avatar-image { width: 70px; height: 70px; } .btn { padding: 16px; font-size: 0.95rem; } .date-field { width: 60px; padding: 14px 8px; font-size: 1.1rem; } }
+    </style>
+</head>
+<body>
+    <video id="intro-video" autoplay muted playsinline preload="auto"><source src="" type="video/mp4"></video>
+    <div id="character-bg"></div>
+    <canvas id="matrix-canvas"></canvas>
 
+    <div class="container">
+        <div id="trial-notice" class="trial-notice" style="display: none;">
+            <div class="days-left">🎁 <span id="days-left">7</span> дней бесплатного доступа</div>
+            <div class="text">Все функции открыты! Успейте попробовать</div>
+        </div>
+
+        <div id="screen-select" class="screen active">
+            <div class="cosmic-header">
+                <h1>NEURO-LAB</h1>
+                <p class="slogan">Научный подход к предсказаниям.</p>
+                <p class="subtitle">Выберите своего проводника</p>
+            </div>
+            <div style="text-align: center;"><span class="trial-badge">🔥 БЕСПЛАТНАЯ НЕДЕЛЯ</span></div>
+            <div class="avatars-container">
+                <div class="avatar-card neyra" onclick="selectGuide('neyra')">
+                    <div class="avatar-image" style="background-image: url('neyra-avatar.jpg');"></div>
+                    <div class="avatar-info"><h3>НЕЙРА</h3><p>Интуиция • Звёзды • Космос</p></div>
+                </div>
+                <div class="avatar-card alex" onclick="selectGuide('alex')">
+                    <div class="avatar-image" style="background-image: url('alex-avatar.jpg');"></div>
+                    <div class="avatar-info"><h3>АЛЕКС</h3><p>Логика • Числа • Структура</p></div>
+                </div>
+            </div>
+            <div class="social-proof"><div class="count">👥 12,847</div><div class="text">человек уже открыли свою судьбу</div></div>
+            <p class="hint">✨ Первый сеанс — бесплатно<br>🔓 Все функции открыты на 7 дней</p>
+        </div>
+
+        <div id="screen-date" class="screen">
+            <div class="cosmic-header"><h1 id="guide-name">НЕЙРА</h1><p class="subtitle">Введите дату рождения</p></div>
+            <div class="input-group">
+                <label class="input-label">Когда вы появились на свет?</label>
+                <div class="date-input-container">
+                    <input type="text" id="day-input" class="date-field" placeholder="ДД" maxlength="2" inputmode="numeric">
+                    <span class="date-separator">.</span>
+                    <input type="text" id="month-input" class="date-field" placeholder="ММ" maxlength="2" inputmode="numeric">
+                    <span class="date-separator">.</span>
+                    <input type="text" id="year-input" class="date-field" placeholder="ГГГГ" maxlength="4" inputmode="numeric">
+                </div>
+            </div>
+            <button class="btn" onclick="goToModules()">Продолжить</button>
+            <button class="btn btn-secondary" onclick="showScreen('screen-select')">Назад</button>
+            <div class="social-proof"><div class="timer-display" id="trial-timer">⏰ 06:23:45:17</div><div class="text">до конца бесплатного периода</div></div>
+        </div>
+
+        <div id="screen-modules" class="screen">
+            <div class="cosmic-header"><h1>Выберите модуль</h1><p class="subtitle">Что хотите узнать?</p></div>
+            <div class="trial-notice" style="margin-bottom: 12px; padding: 10px 14px;"><div class="text">🎁 Все модули бесплатны ещё <span id="module-days">7</span> дней</div></div>
+            
+            <!-- Реферальный блок в меню модулей -->
+            <div class="referral-box">
+                <div class="bonus">🎁 +7 дней за каждого друга!</div>
+                <div class="text">Пригласи друзей — получи больше бесплатных дней</div>
+                <div class="referral-count">Друзей: <span id="ref-count">0</span>/6 • Бонус: <span id="ref-bonus">0</span> дн.</div>
+                <div class="referral-progress">Максимум +42 дня бонуса</div>
+                <button class="btn btn-secondary" style="margin-top: 12px; padding: 12px;" onclick="shareReferral()">📤 Пригласить друга</button>
+            </div>
+            
+            <div class="modules-grid">
+                <div class="module-card free" onclick="runModule('astro', true)"><div class="module-icon">🌌</div><div class="module-info"><h3>Звёздный сканер</h3><p>Знак, планета, стихия</p></div><div class="module-price">БЕСПЛАТНО</div></div>
+                <div class="module-card" onclick="runModule('astro-full', false)"><div class="module-icon">⭐</div><div class="module-info"><h3>Траектория</h3><p>Прогноз на неделю</p></div><div class="module-price">50 ⭐</div></div>
+                <div class="module-card" onclick="runModule('numerology', false)"><div class="module-icon">🔐</div><div class="module-info"><h3>Код судьбы</h3><p>Число судьбы и характера</p></div><div class="module-price">50 ⭐</div></div>
+                <div class="module-card" onclick="runModule('biorhythm', false)"><div class="module-icon">💓</div><div class="module-info"><h3>Пульс энергии</h3><p>Диагностика биополя</p></div><div class="module-price">50 ⭐</div></div>
+                <div class="module-card premium" onclick="runModule('compatibility', false)"><div class="module-icon">⚡</div><div class="module-info"><h3>Резонанс</h3><p>Анализ совместимости</p></div><div class="module-price">99 ⭐</div></div>
+                <div class="module-card premium" onclick="runModule('full', false)"><div class="module-icon">🔑</div><div class="module-info"><h3>Нейро-ключ</h3><p>Полный доступ ко всем модулям</p></div><div class="module-price">149 ⭐</div></div>
+            </div>
+            <button class="btn btn-secondary" onclick="showScreen('screen-date')">Назад</button>
+        </div>
+
+        <div id="screen-loading" class="screen">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text" id="loading-text">Анализ данных...</div>
+                <div class="loading-steps" id="loading-steps">• Сканирование звёздного сектора<br>• Дешифровка цифрового ядра<br>• Диагностика биополя<br>• Генерация персонального ключа</div>
+                <div class="progress-container"><div class="progress-bar" id="loading-progress" style="width: 0%"></div></div>
+            </div>
+        </div>
+
+        <div id="screen-result" class="screen">
+            <div class="cosmic-header"><h1>Ваш результат</h1><p class="subtitle">Персональный анализ</p></div>
+            <div class="result-card" id="result-content"></div>
+            <div class="action-buttons">
+                <button class="btn" onclick="shareResult()">📤 Поделиться</button>
+                <button class="btn btn-secondary" onclick="showScreen('screen-modules')">🔄 Ещё</button>
+            </div>
+            <div class="hint">💎 После окончания триала:<br>Нейро-ключ (полный доступ) — 149 ⭐</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp; tg.expand(); tg.ready();
+        let currentGuide = 'neyra', birthDate = '', currentResult = '', BASE_TRIAL_DAYS = 7, referralCount = 0, referralBonus = 0, MAX_REFERRALS = 6, DAYS_PER_REFERRAL = 7;
+
+        function initTrial() {
+            const firstVisit = localStorage.getItem('neuroFirstVisit'), now = new Date().getTime();
+            if (!firstVisit) { localStorage.setItem('neuroFirstVisit', now); localStorage.setItem('neuroTrialActive', 'true'); }
+            
+            // Загрузка реферальных данных
+            referralCount = parseInt(localStorage.getItem('neuroRefCount') || '0');
+            referralBonus = Math.min(referralCount * DAYS_PER_REFERRAL, MAX_REFERRALS * DAYS_PER_REFERRAL);
+            const totalDays = BASE_TRIAL_DAYS + referralBonus;
+            localStorage.setItem('neuroTotalDays', totalDays);
+            updateReferralDisplay();
+            checkTrialStatus();
+            
+            // Проверка на реферальный переход
+            const referrerId = tg.initDataUnsafe?.start_param;
+            if (referrerId && referrerId.startsWith('ref_')) {
+                localStorage.setItem('neuroReferrer', referrerId);
+            }
+        }
+
+        function updateReferralDisplay() {
+            document.getElementById('ref-count').textContent = referralCount;
+            document.getElementById('ref-bonus').textContent = referralBonus;
+        }
+
+        function shareReferral() {
+            const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 100000);
+            const refLink = `https://t.me/YourNeuroLabBot?start=ref_${userId}`;
+            const text = `🔮 Я использую Neuro-Lab для точных прогнозов!\nПопробуй бесплатно: ${refLink}\n\n+7 дней бонуса каждому!`;
+            if (tg.shareText) { tg.shareText(text); } else { navigator.share({ title: 'Neuro-Lab', text }).catch(() => { navigator.clipboard.writeText(text); tg.showAlert('Ссылка скопирована!'); }); }
+            haptic('success');
+        }
+
+        function checkTrialStatus() {
+            const firstVisit = parseInt(localStorage.getItem('neuroFirstVisit')), now = new Date().getTime();
+            const totalDays = parseInt(localStorage.getItem('neuroTotalDays') || BASE_TRIAL_DAYS);
+            const daysPassed = (now - firstVisit) / (1000 * 60 * 60 * 24);
+            const daysLeft = Math.max(0, totalDays - Math.floor(daysPassed));
+            if (daysLeft > 0) {
+                document.getElementById('trial-notice').style.display = 'block';
+                document.getElementById('days-left').textContent = daysLeft;
+                document.getElementById('module-days').textContent = daysLeft;
+                startTrialTimer(daysLeft);
+            } else { document.getElementById('trial-notice').style.display = 'none'; localStorage.setItem('neuroTrialActive', 'false'); }
+        }
+
+        function startTrialTimer(daysLeft) {
+            const firstVisit = parseInt(localStorage.getItem('neuroFirstVisit')), totalDays = parseInt(localStorage.getItem('neuroTotalDays') || BASE_TRIAL_DAYS);
+            const trialEnd = firstVisit + (totalDays * 24 * 60 * 60 * 1000);
+            setInterval(() => {
+                const now = new Date().getTime(), remaining = Math.max(0, trialEnd - now);
+                const d = Math.floor(remaining / (1000 * 60 * 60 * 24)), h = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60)), s = Math.floor((remaining % (1000 * 60)) / 1000);
+                const timerEl = document.getElementById('trial-timer');
+                if (timerEl) { timerEl.textContent = `⏰ ${d}:${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
+            }, 1000);
+        }
+
+        function playIntroVideo(guide) {
+            const video = document.getElementById('intro-video'), bg = document.getElementById('character-bg');
+            video.src = guide === 'neyra' ? 'female/1.mp4' : 'male/1.mp4';
+            video.classList.add('playing'); video.play();
+            video.onended = function() { video.classList.remove('playing'); bg.style.backgroundImage = `url('${guide}-avatar.jpg')`; bg.classList.add('visible'); startMatrixEffect(); };
+        }
+
+        const matrixCanvas = document.getElementById('matrix-canvas'), matrixCtx = matrixCanvas.getContext('2d');
+        let matrixAnimationId = null, matrixChars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン', fontSize = 14, columns = [], matrixStyle = 'neyra';
+
+        function resizeMatrix() { matrixCanvas.width = window.innerWidth; matrixCanvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeMatrix); resizeMatrix();
+
+        function initMatrix() { columns = []; const columnCount = Math.floor(matrixCanvas.width / fontSize); for (let i = 0; i < columnCount; i++) { columns[i] = Math.random() * -100; } }
+
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)'; matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            const color = matrixStyle === 'neyra' ? 'rgba(168, 85, 247, 0.8)' : 'rgba(0, 255, 136, 0.8)';
+            matrixCtx.fillStyle = color; matrixCtx.font = fontSize + 'px monospace';
+            for (let i = 0; i < columns.length; i++) {
+                const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                matrixCtx.fillText(char, i * fontSize, columns[i] * fontSize);
+                if (columns[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) { columns[i] = 0; }
+                columns[i]++;
+            }
+            matrixAnimationId = requestAnimationFrame(drawMatrix);
+        }
+
+        function startMatrixEffect() { if (matrixAnimationId) cancelAnimationFrame(matrixAnimationId); initMatrix(); drawMatrix(); }
+        function stopMatrixEffect() { if (matrixAnimationId) cancelAnimationFrame(matrixAnimationId); matrixCtx.clearRect(0, 0, matrixCanvas.width, matrixCanvas.height); }
+
+        function showScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(screenId).classList.add('active'); }
+        function haptic(type = 'light') { if (tg.HapticFeedback) { tg.HapticFeedback.impactOccurred(type); } }
+
+        function selectGuide(guide) { currentGuide = guide; haptic('medium'); document.getElementById('guide-name').textContent = guide === 'neyra' ? 'НЕЙРА' : 'АЛЕКС'; matrixStyle = guide; playIntroVideo(guide); showScreen('screen-date'); }
+
+        const dayInput = document.getElementById('day-input'), monthInput = document.getElementById('month-input'), yearInput = document.getElementById('year-input');
+        [dayInput, monthInput, yearInput].forEach((input, index, inputs) => {
+            input.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); if (e.target.value.length === e.target.maxLength && index < inputs.length - 1) { inputs[index + 1].focus(); } });
+            input.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && e.target.value === '' && index > 0) { inputs[index - 1].focus(); } });
+        });
+
+        function goToModules() {
+            const day = parseInt(dayInput.value) || 0, month = parseInt(monthInput.value) || 0, year = parseInt(yearInput.value) || 0;
+            if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2026) { tg.showAlert('Пожалуйста, введите корректную дату рождения'); haptic('error'); return; }
+            birthDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`; haptic('success'); showScreen('screen-modules');
+        }
+
+        function runModule(moduleType, isFree) {
+            haptic('light'); const trialActive = localStorage.getItem('neuroTrialActive') === 'true';
+            if (!isFree && !trialActive) { tg.showConfirm('Этот модуль стоит 50 ⭐. Продолжить?', (confirmed) => { if (confirmed) { haptic('success'); startAnalysis(moduleType); } else { haptic('warning'); } }); } else { startAnalysis(moduleType); }
+        }
+
+        function startAnalysis(moduleType) {
+            showScreen('screen-loading');
+            const texts = ['Сканирование звёздного сектора...', 'Дешифровка цифрового ядра...', 'Диагностика биополя...', 'Генерация персонального ключа...', 'Готово!'];
+            let step = 0; const interval = setInterval(() => {
+                if (step < texts.length) { document.getElementById('loading-text').textContent = texts[step]; document.getElementById('loading-progress').style.width = ((step + 1) / texts.length * 100) + '%'; step++; }
+                else { clearInterval(interval); generateResult(moduleType); }
+            }, 800);
+        }
+
+        function generateResult(moduleType) {
+            const date = new Date(birthDate), day = date.getDate(), month = date.getMonth() + 1, year = date.getFullYear();
+            const zodiacSigns = [{ name: 'Козерог', start: [12, 22], end: [1, 19] }, { name: 'Водолей', start: [1, 20], end: [2, 18] }, { name: 'Рыбы', start: [2, 19], end: [3, 20] }, { name: 'Овен', start: [3, 21], end: [4, 19] }, { name: 'Телец', start: [4, 20], end: [5, 20] }, { name: 'Близнецы', start: [5, 21], end: [6, 20] }, { name: 'Рак', start: [6, 21], end: [7, 22] }, { name: 'Лев', start: [7, 23], end: [8, 22] }, { name: 'Дева', start: [8, 23], end: [9, 22] }, { name: 'Весы', start: [9, 23], end: [10, 22] }, { name: 'Скорпион', start: [10, 23], end: [11, 21] }, { name: 'Стрелец', start: [11, 22], end: [12, 21] }];
+            let sign = 'Козерог';
+            for (const s of zodiacSigns) { const birthMD = month * 100 + day, startMD = s.start[0] * 100 + s.start[1], endMD = s.end[0] * 100 + s.end[1]; if (s.start[0] > s.end[0]) { if (birthMD >= startMD || birthMD <= endMD) { sign = s.name; break; } } else { if (birthMD >= startMD && birthMD <= endMD) { sign = s.name; break; } } }
+            const lifePathNumber = (day + month + year).toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+            const finalNumber = lifePathNumber > 9 && lifePathNumber !== 11 && lifePathNumber !== 22 ? lifePathNumber.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0) : lifePathNumber;
+            const daysSinceBirth = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
+            const physical = Math.round(50 + 50 * Math.sin(2 * Math.PI * daysSinceBirth / 23)), emotional = Math.round(50 + 50 * Math.sin(2 * Math.PI * daysSinceBirth / 28)), intellectual = Math.round(50 + 50 * Math.sin(2 * Math.PI * daysSinceBirth / 33));
+            const style = currentGuide === 'neyra' ? { prefix: '✨', insight: getMysticalInsight(sign), tone: 'мистический' } : { prefix: '📊', insight: getAnalyticalInsight(sign), tone: 'аналитический' };
+            let resultHTML = '';
+            if (moduleType === 'astro') {
+                resultHTML = `<div class="result-header"><div class="result-title">${style.prefix} ${sign}</div><p class="result-subtitle">Стиль: ${style.tone} • ${currentGuide === 'neyra' ? 'НЕЙРА' : 'АЛЕКС'}</p></div><div class="result-section"><h3>⭐ Характеристика</h3><div class="result-text">${getZodiacDescription(sign)}</div></div><div class="insight-box">💫 <strong>Инсайт:</strong><br>"${style.insight}"</div><div class="result-section"><h3>📊 Энергия сегодня</h3><div class="result-text"><strong>Физическая:</strong> ${physical}% ${getEnergyBar(physical)}<br><strong>Эмоциональная:</strong> ${emotional}% ${getEnergyBar(emotional)}<br><strong>Интеллектуальная:</strong> ${intellectual}% ${getEnergyBar(intellectual)}</div></div><div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, rgba(245, 87, 108, 0.15) 0%, rgba(240, 147, 251, 0.15) 100%); border-radius: 12px; text-align: center; border: 1px solid rgba(245, 87, 108, 0.3);"><strong style="font-size: 1rem;">🔥 Полный прогноз на неделю?</strong><br><span style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 6px; display: block;">Карьера • Отношения • Здоровье</span><br><button class="btn btn-premium" style="margin-top: 12px; padding: 14px; font-size: 0.9rem;" onclick="haptic('success'); tg.showAlert('Здесь будет оплата 50 ⭐')">Открыть за 50 ⭐</button></div>`;
+            } else if (moduleType === 'numerology') {
+                resultHTML = `<div class="result-header"><div class="result-title">🔐 Код судьбы: ${finalNumber}</div><p class="result-subtitle">Расчёт по системе Пифагора</p></div><div class="result-section"><h3>🎯 Значение</h3><div class="result-text">${getNumerologyDescription(finalNumber)}</div></div><div class="insight-box">💫 <strong>Суперсила:</strong><br>"${getSuperPower(finalNumber)}"</div>`;
+            } else if (moduleType === 'biorhythm') {
+                resultHTML = `<div class="result-header"><div class="result-title">💓 Пульс энергии</div><p class="result-subtitle">Диагностика биополя на сегодня</p></div><div class="result-section"><h3>💪 Физический цикл (23 дня)</h3><div class="result-text">${physical}% — ${getBiorhythmInterpretation(physical, 'физический')}</div></div><div class="result-section"><h3>💝 Эмоциональный цикл (28 дней)</h3><div class="result-text">${emotional}% — ${getBiorhythmInterpretation(emotional, 'эмоциональный')}</div></div><div class="result-section"><h3>🧠 Интеллектуальный цикл (33 дня)</h3><div class="result-text">${intellectual}% — ${getBiorhythmInterpretation(intellectual, 'интеллектуальный')}</div></div>`;
+            } else if (moduleType === 'compatibility') {
+                resultHTML = `<div class="result-header"><div class="result-title">⚡ Резонанс</div><p class="result-subtitle">Анализ совместимости</p></div><div class="input-group"><label class="input-label">Дата рождения партнёра</label><div class="date-input-container"><input type="text" id="p-day" class="date-field" placeholder="ДД" maxlength="2" inputmode="numeric"><span class="date-separator">.</span><input type="text" id="p-month" class="date-field" placeholder="ММ" maxlength="2" inputmode="numeric"><span class="date-separator">.</span><input type="text" id="p-year" class="date-field" placeholder="ГГГГ" maxlength="4" inputmode="numeric"></div></div><button class="btn" onclick="calculateCompatibility()">Рассчитать резонанс</button>`;
+            } else if (moduleType === 'astro-full' || moduleType === 'full') {
+                resultHTML = `<div class="result-header"><div class="result-title">⭐ Траектория на неделю</div><p class="result-subtitle">${sign} • ${new Date().toLocaleDateString('ru-RU')}</p></div><div class="result-section"><h3>📅 Прогноз</h3><div class="result-text">${getWeeklyForecast(sign)}</div></div><div class="insight-box">💫 <strong>Совет:</strong><br>"${getStarAdvice()}"</div>`;
+            }
+            document.getElementById('result-content').innerHTML = resultHTML; currentResult = resultHTML; haptic('success'); showScreen('screen-result');
+        }
+
+        function getEnergyBar(percent) { const filled = Math.floor(percent / 10); return ' ' + '🟩'.repeat(filled) + '⬜'.repeat(10 - filled); }
+        function getZodiacDescription(sign) { const d = { 'Овен': 'Лидер и первопроходец. Энергия и решимость вдохновляют.', 'Телец': 'Надёжный и практичный. Цените стабильность и красоту.', 'Близнецы': 'Коммуникабельны и любознательны. Ум быстр как молния.', 'Рак': 'Чувствительны и интуитивны. Заботитесь о близких.', 'Лев': 'Ярки и харизматичны. Рождены чтобы сиять.', 'Дева': 'Внимательны к деталям. Аналитический ум.', 'Весы': 'Гармоничны и дипломатичны. Стремительсь к балансу.', 'Скорпион': 'Глубоки и интенсивны. Интуиция пронзает.', 'Стрелец': 'Оптимистичны и свободолюбивы. Жаждете знаний.', 'Козерог': 'Амбициозны и дисциплинированны. Достигаете целей.', 'Водолей': 'Оригинальны и независимы. Видите будущее.', 'Рыбы': 'Мечтательны и сострадательны. Интуиция — компас.' }; return d[sign] || ''; }
+        function getMysticalInsight(sign) { const i = { 'Овен': 'Звёзды шепчут: сегодня твой день. Доверься потоку...', 'Телец': 'Космическая энергия стабилизируется. Время заземления...', 'Близнецы': 'Ветер перемен несёт новые идеи. Будь открыт...', 'Рак': 'Луна усиливает интуицию. Слушай голос...', 'Лев': 'Солнце в твоём знаке. Сияй ярко...', 'Дева': 'Меркурий дарит ясность. Систематизируй...', 'Весы': 'Венера благословляет гармонию. Ищи баланс...', 'Скорпион': 'Плутон открывает тайны. Глубокий анализ...', 'Стрелец': 'Юпитер расширяет горизонты. Новые знания...', 'Козерог': 'Сатурн требует дисциплины. Шаг за шагом...', 'Водолей': 'Уран приносит инсайты. Идеи опережают...', 'Рыбы': 'Нептун открывает врата. Мечты сбываются...' }; return i[sign] || 'Звёзды поддерживают начинания.'; }
+        function getAnalyticalInsight(sign) { const i = { 'Овен': 'Анализ: благоприятный период. Вероятность успеха: 87%.', 'Телец': 'Стабильность: 92%. Рекомендуется укрепление.', 'Близнецы': 'Коммуникация: канал открыт. Эффективность: +34%.', 'Рак': 'Эмоциональный фон: стабильный. Интуиция: активна.', 'Лев': 'Энергия: пиковая. Рекомендация: действовать.', 'Дева': 'Анализ данных: завершён. Точность: 94%.', 'Весы': 'Баланс систем: оптимальный. Гармония: достигнута.', 'Скорпион': 'Глубинный скан: обнаружены возможности.', 'Стрелец': 'Горизонт событий: расширяется. Новые данные.', 'Козерог': 'Прогресс: стабилен. Цель: достижима.', 'Водолей': 'Инновации: доступны. Креативность: пик.', 'Рыбы': 'Интуитивный канал: активен. Доверие: рекомендовано.' }; return i[sign] || 'Данные обрабатываются.'; }
+        function getNumerologyDescription(num) { const d = { 1: 'Лидер и новатор. Создаёте свой путь.', 2: 'Дипломат и партнёр. Создаёте гармонию.', 3: 'Творец и оптимист. Энтузиазм заразителен.', 4: 'Строитель и практик. Прочный фундамент.', 5: 'Исследователь и свободолюбец. Жаждете перемен.', 6: 'Хранитель и целитель. Забота о семье.', 7: 'Мистик и аналитик. Ищете истину.', 8: 'Лидер и организатор. Материальный успех.', 9: 'Гуманист и филантроп. Служение цели.' }; return d[num] || 'Уникальная энергия.'; }
+        function getSuperPower(num) { const p = ['Способность вести', 'Гармония', 'Творчество', 'Мудрость', 'Гибкость', 'Целительство', 'Интуиция', 'Организация', 'Любовь']; return p[num % p.length] || 'Уникальная энергия'; }
+        function getBiorhythmInterpretation(percent, type) { if (percent >= 80) return `Отлично! Пик в ${type}й сфере.`; if (percent >= 60) return `Хорошо. Стабильно.`; if (percent >= 40) return `Средне. Возможны колебания.`; if (percent >= 20) return `Низко. Отдых.`; return `Минимум. Восстановление.`; }
+        function getWeeklyForecast(sign) { const f = { 'Овен': 'Неделя активных действий. Карьера: рост. Отношения: страсть.', 'Телец': 'Неделя стабильности. Финансы: укрепление. Здоровье: внимание.', 'Близнецы': 'Неделя коммуникации. Контакты: новые. Обучение: продуктивно.', 'Рак': 'Неделя эмоций. Семья: радость. Интуиция: пик.', 'Лев': 'Неделя славы. Творчество: прорыв. Романтика: благоприятна.', 'Дева': 'Неделя порядка. Работа: завершение. Здоровье: контроль.', 'Весы': 'Неделя баланса. Партнёрство: выгода. Красота: окружает.', 'Скорпион': 'Неделя трансформации. Финансы: возможности. Глубина: истина.', 'Стрелец': 'Неделя расширения. Путешествие: возможно. Оптимизм: заразителен.', 'Козерог': 'Неделя дисциплины. Карьера: рост. Планы: реализация.', 'Водолей': 'Неделя инноваций. Идеи: поддержка. Дружба:惊喜.', 'Рыбы': 'Неделя духовности. Творчество: вдохновение. Мечты: сбываются.' }; return f[sign] || 'Звёзды благоприятствуют.'; }
+        function getStarAdvice() { const a = ['Доверьтесь потоку', 'Действуйте обдуманно', 'Слушайте сердце', 'Баланс — ключ', 'Интуиция не подведёт', 'Время начинать', 'Фокус на главном', 'Отпустите лишнее', 'Энергия вдохновляет', 'Терпение — плоды']; return a[Math.floor(Math.random() * a.length)]; }
+        function calculateCompatibility() { const pd = document.getElementById('p-day')?.value, pm = document.getElementById('p-month')?.value, py = document.getElementById('p-year')?.value; if (!pd || !pm || !py) { tg.showAlert('Введите дату партнёра'); return; } const compat = Math.floor(Math.random() * 40 + 60); const r = `<div class="result-header"><div class="result-title">💕 Совместимость: ${compat}%</div></div><div class="result-section"><h3>🌟 Анализ</h3><div class="result-text">${compat >= 80 ? 'Отлично! Звёзды благоволят.' : compat >= 60 ? 'Хорошо. Работа принесёт плоды.' : 'Нужна работа. Различия — сила.'}</div></div><div class="insight-box">💫 <strong>Совет:</strong><br>"Взаимопонимание на уважении"</div>`; document.getElementById('result-content').innerHTML = r; haptic('success'); showScreen('screen-result'); }
+        function shareResult() { const text = `🔮 Мой анализ от Neuro-Lab:\n${getMysticalInsight('Овен')}\n\nУзнай судьбу: ${window.location.href}`; if (tg.shareText) { tg.shareText(text); } else { navigator.share({ title: 'Neuro-Lab', text }).catch(() => { navigator.clipboard.writeText(text); tg.showAlert('Скопировано!'); }); } haptic('success'); }
+
+        initTrial();
+        setTimeout(() => { tg.showPopup({ title: '🎁 Добро пожаловать!', message: 'Первый анализ — бесплатно. Все функции открыты на 7 дней + бонусы за друзей!', buttons: [{type: 'ok'}] }); }, 1000);
+    </script>
+</body>
+</html>
