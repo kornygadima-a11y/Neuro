@@ -1,1 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeuroLab | Цифровой Оракул</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #050510;
+            --primary: #00ffcc;
+            --secondary: #7000ff;
+            --text: #e0e0e0;
+            --danger: #ff0055;
+        }
 
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* СЛОИ */
+        #bg-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            z-index: 1;
+        }
+
+        #video-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        #video-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ВИДЕО-ФОН ДЛЯ ПРОГНОЗОВ (Зацикленный) */
+        #prediction-bg-video {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        #prediction-bg-video.active {
+            opacity: 0.3;
+            pointer-events: auto;
+        }
+
+        #ui-layer {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* ЭКРАНЫ */
+        .screen { display: none; height: 100%; flex-direction: column; justify-content: center; }
+        .screen.active { display: flex; }
+
+        /* АВАТАР (ФИКСИРОВАННЫЙ) */
+        .avatar-container {
+            position: fixed;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--primary);
+            box-shadow: 0 0 30px var(--primary);
+            z-index: 20;
+            overflow: hidden;
+            background: #000;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .avatar-container.visible {
+            opacity: 1;
+        }
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* КОНТЕНТ ПРОГНОЗА */
+        .prediction-content {
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            z-index: 25;
+            text-align: center;
+            display: none;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        /* ЭЛЕМЕНТЫ */
+        h1, h2 { text-align: center; text-transform: uppercase; letter-spacing: 2px; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        
+        .input-group { margin: 20px 0; }
+        input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--primary);
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .btn {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 15px;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 10px;
+            box-shadow: 0 0 10px var(--primary);
+            transition: 0.3s;
+            width: 100%;
+        }
+        .btn:active { background: var(--primary); color: #000; }
+        .btn-secondary { border-color: var(--secondary); color: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
+        .btn-secondary:active { background: var(--secondary); color: #fff; }
+
+        .card {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            text-align: left;
+        }
+        .card h3 { margin-top: 0; color: var(--secondary); font-size: 14px; }
+        .card p { font-size: 13px; margin-bottom: 0; }
+        
+        .locked { filter: blur(4px); user-select: none; }
+        .lock-overlay { position: relative; }
+        .lock-overlay::after {
+            content: '🔒 PREMIUM';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--primary);
+            font-weight: bold;
+            border: 2px solid var(--primary);
+            padding: 5px 10px;
+            background: #000;
+            z-index: 10;
+        }
+
+        .char-select { display: flex; gap: 10px; justify-content: center; }
+        .char-card {
+            border: 2px solid #333;
+            padding: 20px;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+        }
+        .char-card.selected { border-color: var(--primary); box-shadow: 0 0 15px var(--primary); }
+
+        .status-bar { font-size: 12px; color: #666; text-align: center; margin-top: 10px; }
+        
+        .test-mode {
+            position: fixed;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 10px;
+            z-index: 100;
+            border-radius: 3px;
+        }
+
+        .close-prediction {
+            position: fixed;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            width: 200px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="test-mode">TEST MODE</div>
+
+    <!-- СЛОИ -->
+    <div id="bg-layer"></div>
+    <div id="video-layer"><video id="main-video" playsinline></video></div>
+    
+    <!-- ВИДЕО-ФОН ДЛЯ ПРОГНОЗОВ (Зацикленный) -->
+    <video id="prediction-bg-video" playsinline loop muted autoplay></video>
+    
+    <!-- АВАТАР ПЕРСОНАЖА -->
+    <div id="avatar-container" class="avatar-container">
+        <img id="avatar-img" src="" alt="Avatar">
+    </div>
+
+    <!-- КОНТЕНТ ПРОГНОЗА -->
+    <div id="prediction-content" class="prediction-content">
+        <div id="output-container"></div>
+        <button class="btn close-prediction" onclick="closePrediction()">В Меню</button>
+    </div>
+    
+    <!-- ИНТЕРФЕЙС -->
+    <div id="ui-layer">
+        
+        <!-- ЭКРАН 1: ВЫБОР ПЕРСОНАЖА -->
+        <div id="screen-start" class="screen active">
+            <h1>NeuroLab</h1>
+            <p style="text-align:center">Выберите проводника:</p>
+            <div class="char-select">
+                <div class="char-card" onclick="selectChar('female')">
+                    <h2>НЕЙРА</h2>
+                    <p>Интуиция</p>
+                </div>
+                <div class="char-card" onclick="selectChar('male')">
+                    <h2>АЛЕКС</h2>
+                    <p>Логика</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН 2: ВВОД ДАННЫХ -->
+        <div id="screen-input" class="screen">
+            <h2>Инициализация</h2>
+            <div class="input-group">
+                <input type="text" id="user-name" placeholder="Ваше имя">
+                <input type="text" id="user-birthdate" placeholder="Дата (ДД.ММ.ГГГГ)">
+            </div>
+            <button class="btn" onclick="submitData()">Запустить систему</button>
+            <button class="btn btn-secondary" onclick="resetData()">Сброс данных</button>
+        </div>
+
+        <!-- ЭКРАН 3: МЕНЮ -->
+        <div id="screen-menu" class="screen">
+            <h2 id="menu-greeting" style="margin-top: 20px;">Привет, Агент</h2>
+            <div style="flex:1;"></div>
+            <div style="padding-bottom: 140px;">
+                <div class="card" onclick="runModule('numerology')">
+                    <h3>🔢 Нумерология</h3>
+                    <p>Расчет цифрового ядра</p>
+                </div>
+                <div class="card" onclick="runModule('biorythms')">
+                    <h3>📈 Биоритмы</h3>
+                    <p>Анализ ресурсов тела</p>
+                </div>
+                <div class="card" onclick="runModule('horoscope')">
+                    <h3>♈ Гороскоп</h3>
+                    <p>Прогноз на сегодня</p>
+                </div>
+                <button class="btn btn-secondary" onclick="shareApp()">📡 Передать доступ</button>
+            </div>
+            <div class="status-bar" id="cache-status">🟢 SYSTEM ONLINE</div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- КОНФИГУРАЦИЯ ---
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // --- СОСТОЯНИЕ ---
+        let state = {
+            char: null,
+            name: '',
+            birthdate: '',
+            zodiac: '',
+            numerology: 0,
+            isPremium: false
+        };
+
+        // --- БАЗА ГОРОСКОПОВ (ЗАГЛУШКА) ---
+        const horoscopeBackup = {
+            aries: { general: "Марс активен. Время для старта.", business: "Благоприятный день для сделок.", love: "Страсть на пике.", strategy: "🎯 Действ быстро до обеда." },
+            taurus: { general: "Венера стабилизирует поле.", business: "Накопление ресурсов.", love: "Гармония в паре.", strategy: "🎯 Укрепляй позиции." },
+            gemini: { general: "Меркурий дает ясность.", business: "Новые контакты полезны.", love: "Легкость в общении.", strategy: "🎯 Собери информацию." },
+            cancer: { general: "Луна в твоем секторе.", business: "Интуиция поможет.", love: "Эмоциональная связь.", strategy: "🎯 Слушай чувства." },
+            leo: { general: "Солнце дает энергию.", business: "Время для презентаций.", love: "Романтика.", strategy: "🎯 Будь в центре." },
+            virgo: { general: "Анализ на пике.", business: "Порядок в делах.", love: "Забота о партнере.", strategy: "🎯 Детали важны." },
+            libra: { general: "Баланс восстановлен.", business: "Партнерство выгодно.", love: "Гармония.", strategy: "🎯 Ищи компромисс." },
+            scorpio: { general: "Плутон активирует трансформацию.", business: "Риск оправдан.", love: "Глубокая связь.", strategy: "🎯 Иди до конца." },
+            sagittarius: { general: "Юпитер расширяет горизонты.", business: "Новые рынки.", love: "Приключения.", strategy: "🎯 Планируй путешествие." },
+            capricorn: { general: "Сатурн требует дисциплины.", business: "Долгосрочные цели.", love: "Ответственность.", strategy: "🎯 Строй фундамент." },
+            aquarius: { general: "Уран дает инсайты.", business: "Инновации.", love: "Свобода.", strategy: "🎯 Ломай шаблоны." },
+            pisces: { general: "Нептун открывает интуицию.", business: "Творческий подход.", love: "Мистика.", strategy: "🎯 Доверься потоку." }
+        };
+
+        // --- ВИДЕО-ФОНЫ (ПУТЬ В ПАПКУ README.md/) ---
+        const predictionBgVideos = {
+            numerology: './README.md/numerology-bg.mp4',
+            biorythms: './README.md/biorythms-bg.mp4',
+            horoscope: './README.md/horoscope-bg.mp4'
+        };
+
+        // --- АВАТАРЫ (В КОРНЕ!) ---
+        const avatars = {
+            female: './neyra-avatar.jpg',
+            male: './alex-avatar.jpg'
+        };
+
+        // --- ВИДЕО ДВИЖОК ---
+        const videoEl = document.getElementById('main-video');
+        const videoLayer = document.getElementById('video-layer');
+        const predictionBgVideo = document.getElementById('prediction-bg-video');
+        const avatarContainer = document.getElementById('avatar-container');
+        const avatarImg = document.getElementById('avatar-img');
+        const predictionContent = document.getElementById('prediction-content');
+        const closeBtn = document.querySelector('.close-prediction');
+
+        function playVideo(stageNum, callback) {
+            const useChar = state.char || (Math.random() > 0.5 ? 'female' : 'male');
+            const src = `./${useChar}/${stageNum}.mp4`;
+            
+            console.log("Playing video:", src);
+            
+            videoEl.src = src;
+            videoLayer.style.opacity = 1;
+            
+            videoEl.play().catch(e => {
+                console.log("Video autoplay blocked:", e);
+                if(callback) setTimeout(callback, 1000);
+            });
+
+            videoEl.onended = () => {
+                videoLayer.style.opacity = 0;
+                setTimeout(() => {
+                    if(callback) callback();
+                }, 500);
+            };
+        }
+
+        // --- ПОКАЗ ПРОГНОЗА С ВИДЕО-ФОНОМ ---
+        function showPredictionScreen(moduleType, contentHTML) {
+            // Запускаем зацикленное видео-фон
+            const bgVideoSrc = predictionBgVideos[moduleType] || predictionBgVideos.horoscope;
+            predictionBgVideo.src = bgVideoSrc;
+            predictionBgVideo.play().catch(e => console.log("BG video error:", e));
+            predictionBgVideo.classList.add('active');
+            
+            document.getElementById('output-container').innerHTML = contentHTML;
+            
+            predictionContent.style.display = 'block';
+            closeBtn.style.display = 'block';
+            
+            document.getElementById('screen-menu').classList.remove('active');
+        }
+
+        function closePrediction() {
+            predictionBgVideo.classList.remove('active');
+            predictionBgVideo.pause();
+            predictionBgVideo.src = '';
+            predictionContent.style.display = 'none';
+            closeBtn.style.display = 'none';
+            document.getElementById('screen-menu').classList.add('active');
+        }
+
+        // --- НАВИГАЦИЯ ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function selectChar(char) {
+            state.char = char;
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            
+            avatarImg.src = avatars[char];
+            avatarContainer.classList.add('visible');
+            
+            playVideo(1, () => showScreen('screen-input'));
+        }
+
+        function submitData() {
+            const name = document.getElementById('user-name').value;
+            const dateStr = document.getElementById('user-birthdate').value;
+            
+            if(!name || !dateStr) return alert('Введите имя и дату');
+            
+            if(!/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+                return alert('Формат даты: ДД.ММ.ГГГГ (например 25.12.1995)');
+            }
+            
+            state.name = name;
+            state.birthdate = dateStr;
+            
+            saveUserData();
+            calculateCoreData();
+            
+            playVideo(2, () => {
+                document.getElementById('menu-greeting').innerText = `Система готова, ${name}`;
+                showScreen('screen-menu');
+            });
+        }
+
+        function saveUserData() {
+            const data = {
+                char: state.char,
+                name: state.name,
+                birthdate: state.birthdate
+            };
+            localStorage.setItem('neuro_user_data', JSON.stringify(data));
+        }
+
+        function loadUserData() {
+            const saved = localStorage.getItem('neuro_user_data');
+            if(saved) {
+                const data = JSON.parse(saved);
+                state.char = data.char;
+                state.name = data.name;
+                state.birthdate = data.birthdate;
+                
+                avatarImg.src = avatars[state.char];
+                avatarContainer.classList.add('visible');
+                document.getElementById('menu-greeting').innerText = `Система готова, ${state.name}`;
+                
+                calculateCoreData();
+                showScreen('screen-menu');
+                return true;
+            }
+            return false;
+        }
+
+        function resetData() {
+            localStorage.removeItem('neuro_user_data');
+            location.reload();
+        }
+
+        // --- РАСЧЕТЫ ---
+        function calculateCoreData() {
+            const parts = state.birthdate.split('.');
+            const d = new Date(parts[2], parts[1] - 1, parts[0]);
+            
+            const day = d.getDate();
+            const month = d.getMonth() + 1;
+            state.zodiac = getZodiac(day, month);
+
+            let sum = state.birthdate.replace(/\./g, '').split('').reduce((a,b)=>parseInt(a)+parseInt(b), 0);
+            while(sum > 9) sum = String(sum).split('').reduce((a,b)=>parseInt(a)+parseInt(b), 0);
+            state.numerology = sum;
+        }
+
+        function getZodiac(day, month) {
+            const signs = ["capricorn", "aquarius", "pisces", "aries", "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius"];
+            const dates = [22, 21, 20, 20, 20, 20, 22, 22, 22, 22, 21, 21];
+            let index = month - 1;
+            if (day < dates[index]) index = (index - 1 + 12) % 12;
+            return signs[index];
+        }
+
+        function getNumerologyText(num) {
+            const texts = {
+                1: "Твое цифровое ядро — Единица. Ты лидер.",
+                2: "Код Двойки. Твоя сила в балансе.",
+                3: "Тройка — код креатива.",
+                4: "Четверка — стабильность.",
+                5: "Пятерка — код перемен.",
+                6: "Шестерка — гармония.",
+                7: "Семерка — мудрость.",
+                8: "Восьмерка — поток ресурсов.",
+                9: "Девятка — завершение цикла."
+            };
+            return texts[num] || "Анализ завершен.";
+        }
+
+        function getBiorythmsText() {
+            const phases = ["Пик ресурса 🟢", "Подъем 📈", "Спад 📉", "Критическая точка ⚠️"];
+            const rand = phases[Math.floor(Math.random() * phases.length)];
+            return `Физический статус: ${rand}.`;
+        }
+
+        // --- МОДУЛИ ---
+        function runModule(type) {
+            playVideo(3, () => {
+                let contentHTML = '';
+                let videoNum = 4;
+
+                if(type === 'numerology') {
+                    contentHTML = `<div class="card"><h3>🔢 Число: ${state.numerology}</h3><p>${getNumerologyText(state.numerology)}</p></div>`;
+                    videoNum = 6;
+                } 
+                else if (type === 'biorythms') {
+                    contentHTML = `<div class="card"><h3>📈 Био-поле</h3><p>${getBiorythmsText()}</p></div>`;
+                    videoNum = 8;
+                }
+                else if (type === 'horoscope') {
+                    const data = horoscopeBackup[state.zodiac] || horoscopeBackup.aries;
+                    contentHTML = `
+                        <div class="card"><h3>✨ Общее</h3><p>${data.general}</p></div>
+                        <div class="card"><h3>💼 Бизнес</h3><p>${data.business}</p></div>
+                        <div class="card"><h3>❤️ Любовь</h3><p>${data.love}</p></div>
+                        <div class="card lock-overlay ${!state.isPremium ? 'locked' : ''}">
+                            <h3>🎯 Стратегия</h3>
+                            <p>${data.strategy}</p>
+                            ${!state.isPremium ? '<button class="btn btn-secondary" onclick="buyPremium()">Купить доступ (5⭐)</button>' : ''}
+                        </div>
+                    `;
+                    videoNum = 7;
+                }
+
+                playVideo(videoNum, () => {
+                    showPredictionScreen(type, contentHTML);
+                });
+            });
+        }
+
+        // --- МОНЕТИЗАЦИЯ ---
+        function buyPremium() {
+            tg.showAlert("🔜 Premium скоро будет доступен!");
+        }
+
+        function shareApp() {
+            const url = `https://t.me/${tg.initDataUnsafe?.user?.username || 'YourBotName'}?start=ref_${state.name}`;
+            tg.shareUrl(url, "Взломал систему предсказаний в NeuroLab!");
+        }
+
+        // --- ТЕСТ PREMIUM ---
+        document.getElementById('menu-greeting').addEventListener('dblclick', () => {
+            state.isPremium = !state.isPremium;
+            tg.showAlert(`Premium: ${state.isPremium ? 'ON' : 'OFF'}`);
+        });
+
+        // --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+        window.onload = () => {
+            if(!loadUserData()) {
+                showScreen('screen-start');
+            }
+        };
+
+    </script>
+</body>
+</html>
